@@ -1,31 +1,253 @@
 #!/bin/bash
 
-# Lấy đường dẫn tuyệt đối của script hiện tại
-SCRIPT_PATH=$(readlink -f "$0")
+# Hàm cài đặt curl tùy thuộc vào hệ điều hành
+install_curl() {
+    if command -v apt-get &> /dev/null; then
+        # Hệ điều hành dựa trên Debian/Ubuntu
+        sudo apt-get update
+        sudo apt-get install -y curl
+    elif command -v yum &> /dev/null; then
+        # Hệ điều hành dựa trên CentOS/Red Hat
+        sudo yum install -y curl
+    elif command -v dnf &> /dev/null; then
+        # Hệ điều hành dựa trên Fedora
+        sudo dnf install -y curl
+    elif command -v zypper &> /dev/null; then
+        # Hệ điều hành dựa trên openSUSE
+        sudo zypper install -y curl
+    elif command -v pacman &> /dev/null; then
+        # Hệ điều hành dựa trên Arch Linux
+        sudo pacman -Syu --noconfirm curl
+    elif command -v apk &> /dev/null; then
+        # Hệ điều hành dựa trên Alpine Linux
+        apk add --no-cache curl
+    else
+        echo "Không thể xác định hệ điều hành. Vui lòng cài đặt curl bằng tay."
+        exit 1
+    fi
+}
+
+# Hàm cài đặt Docker tùy thuộc vào hệ điều hành
+install_docker() {
+    if command -v apk &> /dev/null; then
+        # Hệ điều hành dựa trên Alpine Linux
+        apk add --no-cache docker
+    else
+        # Các hệ điều hành khác
+        curl -sSL https://get.docker.com | sh
+    fi
+
+    # Thêm người dùng hiện tại vào nhóm docker
+    usermod -aG docker $(whoami)
+
+    # Khởi động dịch vụ Docker và thiết lập tự động khởi động
+    if command -v systemctl &> /dev/null; then
+        systemctl start docker
+        systemctl enable docker
+    elif command -v service &> /dev/null; then
+        service docker start
+        service docker enable
+    elif command -v rc-service &> /dev/null; then
+        # Alpine Linux sử dụng openrc
+        rc-service docker start
+        rc-update add docker
+    else
+        echo "Không thể xác định phương pháp khởi động dịch vụ."
+        exit 1
+    fi
+}
+
+# Kiểm tra xem curl đã được cài đặt chưa
+if ! command -v curl &> /dev/null
+then
+    echo "curl chưa được cài đặt. Tiến hành cài đặt curl."
+    install_curl
+fi
+
+# Kiểm tra xem Docker đã được cài đặt chưa
+if ! command -v docker &> /dev/null
+then
+    echo "Docker chưa được cài đặt. Tiến hành cài đặt Docker."
+    install_docker
+fi
+
+# Đường dẫn của thư mục reverse_proxy và các tệp cấu hình
+REVERSE_PROXY_DIR="$(dirname "$0")/reverse_proxy"
+CADDYFILE="$REVERSE_PROXY_DIR/Caddyfile"
+COMPOSE_YML="$REVERSE_PROXY_DIR/compose.yml"
+
+# Hàm kiểm tra và tạo cấu trúc thư mục và tệp cấu hình
+check_and_create_reverse_proxy() {
+    if [ ! -d "$REVERSE_PROXY_DIR" ]; then
+        echo "Thư mục reverse_proxy không tồn tại. Đang tạo thư mục và tệp cấu hình..."
+
+        # Tạo thư mục reverse_proxy và các tệp cấu hình
+        mkdir -p "$REVERSE_PROXY_DIR"
+
+        # Tạo tệp Caddyfile
+        cat <<EOL > "$CADDYFILE"
+# Cấu hình bảo mật cho WordPress
+(wordpress_security) {
+    # Chặn truy cập đến các tập tin và thư mục nhạy cảm
+    @disallowed {
+        path /wp-config.php
+        path /.user.ini
+        path /wp-content/debug.log
+        path *.sql
+        path *.sqlite
+        path /wp-admin/includes/*.php
+        path /wp-includes/*.php
+        path /wp-content/uploads/*.php
+    }
+    # Chuyển hướng các yêu cầu đến các tập tin và thư mục nhạy cảm về trang chủ
+    rewrite @disallowed /index.php
+
+    # Chặn truy cập đến các tập tin với đuôi mở rộng cụ thể
+    @blocked_ext {
+        path_regexp ext \.(7z|ai|asc|asp|aspx|ba|bak|bash|bat|bin|bz2|c|cco|cfg|cgi|class|com|conf|cpp|crt|cs|dat|db|dbf|deb|der|dll|dmg|dmp|dump|ear|eps|exe|git|gz|h|hg|hqx|img|ini|iso|jad|jar|jardiff|jnlp|jsp|kar|kml|kmz|log|m3u8|mdb|mml|msi|msm|msp|odp|ods|odt|old|orig|original|out|pdb|pem|php#|php_bak|php~|pkg|pl|pm|ppk|prc|ps|py|rar|rdf|rpm|run|save|sea|sh|sit|sql|srv|svn|swo|swp|sys|tar|taz|tcl|tgz|tk|tmp|tpl|tsl|tz|vb|yml|war|wsf|xspf|z)$
+    }
+    # Chuyển hướng các yêu cầu đến các tập tin với đuôi mở rộng cụ thể về trang chủ
+    rewrite @blocked_ext /index.php
+
+    # Chặn truy cập đến các thư mục hoặc tập tin đặc biệt
+    @blocked_paths {
+        path /node_modules/*
+        path /composer.json
+        path /fixtures/*
+        path /behat/*
+    }
+    # Chuyển hướng các yêu cầu đến các thư mục hoặc tập tin đặc biệt về trang chủ
+    rewrite @blocked_paths /index.php
+
+    # Chặn truy cập đến các tập tin PHP backup và cấu hình
+    @blocked_php_backup {
+        path /wp-content/uploads/*.php_bak
+        path /wp-content/uploads/*.php~
+    }
+    # Chuyển hướng các yêu cầu đến các tập tin PHP backup và cấu hình về trang chủ
+    rewrite @blocked_php_backup /index.php
+}
+
+(static_header) {
+    @static {
+        file
+        path *.css *.js *.ico *.woff *.woff2
+    }
+    handle @static {
+        header Cache-Control "public, max-age=31536000"
+    }
+
+    @static-img {
+        file
+        path *.gif *.jpg *.jpeg *.png *.svg *.webp *.avif
+    }
+    handle @static-img {
+        header Cache-Control "public, max-age=31536000, immutable"
+    }
+}
+
+(header_remove) {
+    header -Link
+    header -Server
+    header -X-Pingback
+    header -X-Powered-By
+}
+
+EOL
+
+        # Tạo tệp compose.yml
+        cat <<EOL > "$COMPOSE_YML"
+services:
+  caddy:
+    image: caddy:2.8.4-alpine
+    container_name: caddy
+    restart: always
+    networks:
+      - reverse_proxy
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./caddy_data:/data
+      - ./caddy_config:/config
+    ports:
+      - 80:80
+      - 443:443
+      - 443:443/udp
+      
+networks:
+  reverse_proxy:
+    driver: "bridge"
+    name: reverse_proxy
+EOL
+
+        echo "Đã tạo thư mục reverse_proxy và các tệp cấu hình cần thiết."
+    else
+        echo 
+    fi
+}
+
+# Kiểm tra và tạo cấu trúc thư mục và tệp cấu hình nếu cần
+check_and_create_reverse_proxy
+
+
+
+# Xác định đường dẫn tuyệt đối của script
+SCRIPT_PATH=$(readlink -f "$0" 2>/dev/null)
+if [ -z "$SCRIPT_PATH" ]; then
+    SCRIPT_PATH=$(cd "$(dirname "$0")" && pwd)/$(basename "$0")
+fi
+
+# Đảm bảo rằng script có quyền thực thi
+if [ ! -x "$SCRIPT_PATH" ]; then
+    echo "Lỗi: Script không có quyền thực thi."
+    exit 1
+fi
 
 # Tạo alias cho script
 ALIAS="alias lcmp='$SCRIPT_PATH'"
 
-# Đảm bảo rằng .bashrc tồn tại và có quyền ghi
-if [ -f ~/.bashrc ]; then
-    # Thêm alias vào .bashrc nếu chưa tồn tại
-    if ! grep -q "^alias lcmp=" ~/.bashrc; then
-        echo "$ALIAS" >> ~/.bashrc
-        echo "Bạn có thể sử dụng phím tắt 'lcmp' để gọi script này từ bất cứ đâu."
-        # Tải lại cấu hình .bashrc
-        if [ -n "$BASH_VERSION" ]; then
-            source ~/.bashrc
-        else
-            echo "Cảnh báo: Không phải là Bash shell. Vui lòng khởi động lại shell để áp dụng alias."
-        fi
-    else
-        echo "Bạn có thể sử dụng phím tắt 'lcmp' để gọi script này từ bất cứ đâu."
+# Xác định file cấu hình shell
+SHELL_TYPE=$(basename "$SHELL")
+PROFILE_FILE="$HOME/.profile"
+
+case "$SHELL_TYPE" in
+    bash)
+        PROFILE_FILE="$HOME/.bashrc"
+        ;;
+    zsh)
+        PROFILE_FILE="$HOME/.zshrc"
+        ;;
+    ash|dash)
+        PROFILE_FILE="$HOME/.profile"
+        ;;
+    fish)
+        PROFILE_FILE="$HOME/.config/fish/config.fish"
+        ;;
+    *)
+        echo "Không hỗ trợ shell $SHELL_TYPE. Đã sử dụng $PROFILE_FILE."
+        ;;
+esac
+
+# Thêm alias vào file cấu hình
+if [ -f "$PROFILE_FILE" ]; then
+    # Xóa alias cũ nếu tồn tại
+    if grep -q "^alias lcmp=" "$PROFILE_FILE"; then
+        sed -i '/^alias lcmp=/d' "$PROFILE_FILE"
     fi
+
+    # Thêm alias mới vào file cấu hình
+    echo "$ALIAS" >> "$PROFILE_FILE"
+    echo "Bạn có thể sử dụng phím tắt 'lcmp' để gọi script này từ bất cứ đâu."
+
+    # Tải lại cấu hình shell
+    . "$PROFILE_FILE"
 else
-    echo ".bashrc không tồn tại. Vui lòng kiểm tra và tạo tệp .bashrc nếu cần."
+    echo "Không tìm thấy file cấu hình shell phù hợp. Đã tạo file cấu hình mới."
+    echo "$ALIAS" >> "$PROFILE_FILE"
+    . "$PROFILE_FILE"
 fi
 
-	
+
+
 	
 # Xác định thư mục chứa script
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -34,6 +256,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 create_domain() {
     read -p "Bạn muốn dùng domain nào? " DOMAIN
     DOMAIN_DIR="$SCRIPT_DIR/$DOMAIN"
+
+    # Kiểm tra nếu domain không hợp lệ
+    if ! echo "$DOMAIN" | grep -E '^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$' > /dev/null; then
+        echo "Tên domain không hợp lệ. Vui lòng nhập domain theo định dạng đúng (ví dụ: example.com)."
+        exit 1
+    fi
 
     # Kiểm tra nếu thư mục đã tồn tại
     if [ -d "$DOMAIN_DIR" ]; then
@@ -46,6 +274,7 @@ create_domain() {
     mkdir -p "$DOMAIN_DIR"/config/ssl
     mkdir -p "$DOMAIN_DIR"/config/php
     mkdir -p "$DOMAIN_DIR"/config/mariadb
+    mkdir -p "$DOMAIN_DIR"/config/build/php
     
     touch "$DOMAIN_DIR"/compose.yml
     touch "$DOMAIN_DIR"/config/"$DOMAIN".env
@@ -53,6 +282,9 @@ create_domain() {
     touch "$DOMAIN_DIR"/config/php/php-ini-"$DOMAIN".ini
     touch "$DOMAIN_DIR"/config/php/zz-docker-"$DOMAIN".conf
     touch "$DOMAIN_DIR"/config/mariadb/mariadb-"$DOMAIN".cnf
+	
+    touch "$DOMAIN_DIR"/config/build/php/Dockerfile
+	
 
     # Tạo nội dung cho compose.yml
     cat <<EOL > "$DOMAIN_DIR"/compose.yml
@@ -69,7 +301,8 @@ services:
       - ./config/mariadb/mariadb-$DOMAIN.cnf:/etc/my.cnf.d/mariadb-$DOMAIN.cnf
 
   wordpress.$DOMAIN:
-    image: wordpress:php8.3-fpm-alpine
+    #image: wordpress:php8.3-fpm-alpine
+    build: ./config/build/php
     container_name: wordpress.$DOMAIN
     restart: always
     env_file: ./config/$DOMAIN.env
@@ -85,6 +318,15 @@ services:
 networks:
   reverse_proxy:
     external: true
+EOL
+
+    # Tạo nội dung cho Dockerfile
+    cat <<EOL > "$DOMAIN_DIR"/config/build/php/Dockerfile
+FROM wordpress:php8.3-fpm-alpine
+
+# Add WP CLI
+RUN curl -o /usr/local/bin/wp https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar \
+  && chmod +x /usr/local/bin/wp
 EOL
 
     # Tạo mật khẩu ngẫu nhiên cho cơ sở dữ liệu và WordPress
@@ -342,17 +584,24 @@ EOL
 
     echo "Cấu hình cho domain $DOMAIN đã được thêm vào Caddyfile."
 
-    # Khởi động lại reverse_proxy để áp dụng cấu hình mới
+    # Khởi động lại Caddy để áp dụng cấu hình mới
     docker compose -f "$SCRIPT_DIR"/reverse_proxy/compose.yml up -d
     echo "Đã khởi động lại Caddy để áp dụng cấu hình mới."
     
     # Khởi động lại container domain để áp dụng cấu hình mới
-    docker compose -f "$DOMAIN_DIR"/compose.yml up -d
+    docker compose -f "$DOMAIN_DIR/compose.yml" up -d
     echo "Đã khởi động lại container $DOMAIN để áp dụng cấu hình mới."    
 }
 
 delete_domain() {
     read -p "Bạn muốn xóa domain nào? " DOMAIN
+
+    # Kiểm tra nếu người dùng không nhập gì
+    if [ -z "$DOMAIN" ]; then
+        echo "Tên domain không được để trống. Vui lòng nhập lại."
+        exit 1
+    fi
+
     DOMAIN_DIR="$SCRIPT_DIR/$DOMAIN"
 
     # Kiểm tra nếu thư mục không tồn tại
@@ -371,23 +620,24 @@ delete_domain() {
         /$DOMAIN\/config\/$DOMAIN.conf:\/config\/$DOMAIN\/$DOMAIN.conf/d;
     }" "$SCRIPT_DIR"/reverse_proxy/compose.yml
 	
-	# Xóa containers và volumes của domain
-    docker compose -f "$DOMAIN_DIR"/compose.yml down --volumes	
-    
+    # Xóa containers và volumes của domain
+    docker compose -f "$DOMAIN_DIR"/compose.yml down --volumes
+	
     # Xóa thư mục của domain
     rm -rf "$DOMAIN_DIR"
 	
-    
     # Xóa file cấu hình Caddy data và Caddy config còn sót lại
     rm -rf "$SCRIPT_DIR"/reverse_proxy/caddy_data/"$DOMAIN"
     rm -rf "$SCRIPT_DIR"/reverse_proxy/caddy_config/"$DOMAIN"
-	echo "Đã xóa domain $DOMAIN cùng với các thứ liên quan."
+
+    echo "Đã xóa domain $DOMAIN cùng với các thứ liên quan."
 
     # Khởi động lại reverse_proxy để áp dụng cấu hình mới
     docker compose -f "$SCRIPT_DIR"/reverse_proxy/compose.yml up -d
 
     echo "Đã khởi động lại Caddy để áp dụng cấu hình mới."
 }
+
 
 
 # Hàm liệt kê các domain đã tạo
@@ -436,10 +686,10 @@ manage_docker() {
         echo
 		echo "Chọn hành động quản lý Docker:"
         echo "1. Khởi động lại Caddy - Reverse Proxy"
-        echo "2. Kiểm tra chi tiết mạng của container"
-        echo "3. Khởi động lại container"
-        echo "4. Dừng container"
-        echo "5. Xóa container"
+        echo "2. Khởi động lại container domain để áp dụng cấu hình mới"
+        echo "3. Xóa các container, images, và networks không sử dụng"
+        echo "4. Truy cập vào container, ưu tiên bằng bash -> sh"
+        echo "5. Theo dõi cụ thể tình trạng container theo domain"
         echo "6. Khởi động lại tất cả các container"
         echo "7. Xóa toàn bộ các container và tất cả mọi thứ liên quan"
         echo "0. Quay lại menu chính"
@@ -450,45 +700,75 @@ manage_docker() {
             1)
                 echo "Đang khởi động lại Caddy - Reverse Proxy..."
                 # Khởi động lại Caddy
-                docker restart caddy
+				docker compose -f "$SCRIPT_DIR"/reverse_proxy/compose.yml up -d
+				docker compose -f "$SCRIPT_DIR"/reverse_proxy/compose.yml restart
                 echo "Đã khởi động lại Caddy - Reverse Proxy."
                 ;;
             2)
-                read -p "Nhập tên hoặc ID của container: " container_id
-                if docker inspect "$container_id" &> /dev/null; then
-                    docker exec "$container_id" ip addr
-                else
-                    echo
-					echo "Container không tồn tại hoặc không hợp lệ."
-                fi
+				read -p "Nhập tên domain của bạn: " DOMAIN
+				DOMAIN_DIR="$SCRIPT_DIR/$DOMAIN"
+
+				# Kiểm tra sự tồn tại của file compose.yml
+				if [ -f "$DOMAIN_DIR/compose.yml" ]; then
+				echo "Đã tìm thấy file compose.yml tại: $DOMAIN_DIR/compose.yml"
+    
+				# Khởi động lại container domain để áp dụng cấu hình mới
+				docker compose -f "$DOMAIN_DIR/compose.yml" up -d
+				docker compose -f "$DOMAIN_DIR/compose.yml" restart
+				echo "Đã khởi động lại container $DOMAIN để áp dụng cấu hình mới."
+				else
+					echo
+					echo "Domain không tồn tại hoặc không hợp lệ."
+					echo "Kiểm tra lại đường dẫn hoặc tên domain của bạn."
+					echo "Đường dẫn kiểm tra: $DOMAIN_DIR/compose.yml"
+				fi
                 ;;
             3)
-                read -p "Nhập tên hoặc ID của container: " container_id
-                if docker inspect "$container_id" &> /dev/null; then
-                    docker restart "$container_id"
-                else
-                    echo
-					echo "Container không tồn tại hoặc không hợp lệ."
-                fi
-                ;;
+                echo "Đang xóa các container đã dừng, các mạng, các hình ảnh, các volume không còn được sử dụng bởi bất kỳ container nào ."
+				docker system prune -a -f
+				echo "Đã làm sạch không gian lưu trữ của docker bằng cách xóa các thứ không còn được sử dụng ."
+				;;
             4)
                 read -p "Nhập tên hoặc ID của container: " container_id
                 if docker inspect "$container_id" &> /dev/null; then
-                    docker stop "$container_id"
+                    # Truy cập vào shell của container
+                    docker exec -it "$container_id" /bin/bash || docker exec -it "$container_id" /bin/sh
+                    echo "Đã truy cập vào container."
                 else
                     echo
-					echo "Container không tồn tại hoặc không hợp lệ."
+                    echo "Container không tồn tại hoặc không hợp lệ."
                 fi
                 ;;
+
             5)
-                read -p "Nhập tên hoặc ID của container: " container_id
-                if docker inspect "$container_id" &> /dev/null; then
-                    docker rm "$container_id"
+                # Nhập tên domain của bạn
+                read -p "Nhập tên domain của bạn: " DOMAIN
+
+                # Đặt đường dẫn đến thư mục chứa file compose.yml
+                DOMAIN_DIR="$SCRIPT_DIR/$DOMAIN"
+
+                # Kiểm tra sự tồn tại của file compose.yml
+                if [ -f "$DOMAIN_DIR/compose.yml" ]; then
+                    echo "Đã tìm thấy file compose.yml tại: $DOMAIN_DIR/compose.yml"
+
+                    # Di chuyển đến thư mục chứa file compose.yml
+                    cd "$DOMAIN_DIR" || exit
+
+                    # Lấy danh sách các container từ docker-compose.yml
+                    CONTAINERS=$(docker compose ps -q)
+
+                    if [ -n "$CONTAINERS" ]; then
+                        echo "Danh sách container đang chạy:"
+                        # Hiển thị thống kê cho các container
+                        docker stats $CONTAINERS
+                    else
+                        echo "Không có container nào đang chạy."
+                    fi
                 else
-                    echo
-					echo "Container không tồn tại hoặc không hợp lệ."
+                    echo "File compose.yml không tồn tại trong thư mục: $DOMAIN_DIR"
                 fi
                 ;;
+    
             6)
                 echo "Đang khởi động lại toàn bộ các container..."
                 # Dừng tất cả các container đang chạy
@@ -531,4 +811,3 @@ while true; do
         *) echo "Tùy chọn không hợp lệ. Vui lòng chọn lại." ;;
     esac
 done
-
