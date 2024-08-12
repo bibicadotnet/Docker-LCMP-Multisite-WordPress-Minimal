@@ -28,3 +28,7 @@ Docker_LCMP_Multisite_WordPress/
 - domain2.com/
 - domain3.com/
 
+## Cài đặt
+```
+sudo wget https://go.bibica.net/docker-lcmp-multisite-wordPress-minimal -O lcmp.sh && sudo chmod +x lcmp.sh && sudo ./lcmp.sh
+```
