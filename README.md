@@ -4,7 +4,7 @@ Xuất phát ban đầu của Docker LCMP Multisite WordPress Minimal là 1 file
 
 Ban đầu ý tưởng của mình là tách Caddy + PHP + Mariadb mỗi trang là 3 container khác nhau, tách biệt hoàn toàn, mà làm thế vấn đề tùy chỉnh port khá mệt người vì mỗi trang phải dùng 1 port khác nhau, cấu hình 1 Caddy nhiều PHP + Mariadb chỉ cần dùng port mặc định 80/443 là đủ, cấu hình lại nhanh hơn nên sau cùng mình chọn cách này
 
-Mỗi domain sẽ có cấu hình tùy chỉnh PHP, Mariadb riêng biệt
+Mỗi domain sẽ có cấu hình tùy chỉnh PHP, Mariadb riêng biệt, bổ xung thêm ssl trong trường hợp cần dùng ssl từ các nguồn ngoài như Cloudflare
 ```
 Docker_LCMP_Multisite_WordPress/
 ├── 📜 lcmp.sh # Script tự động hóa
