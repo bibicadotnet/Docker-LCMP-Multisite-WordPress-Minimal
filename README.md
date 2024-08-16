@@ -1,4 +1,5 @@
-# Docker-LCMP-Multisite-WordPress-Minimal
+# Docker-LCMP-Multisite-WordPress-Minimal <img src="https://monitor.bibica.net/telemetry/clnzoxcy10001vy2ohi4obbi0/clzx120x70001ia8e3srxpw0y/badge.svg" alt="Visitor Count Badge">
+
 ## Cấu trúc Thư mục
 Xuất phát ban đầu của Docker LCMP Multisite WordPress Minimal là 1 file lcmp.sh, thêm và xóa các trang, hoạt động xoay quanh 1 container Caddy duy nhất, vừa dùng làm Webserver cho mọi trang, vừa dùng làm Reverse Proxy cho mọi dịch vụ phụ khác
 
