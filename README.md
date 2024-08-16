@@ -2,9 +2,9 @@
 
 
 ## Cấu trúc Thư mục
-Xuất phát ban đầu của Docker LCMP Multisite WordPress Minimal là 1 file lcmp.sh, thêm và xóa các trang, hoạt động xoay quanh 1 container Caddy duy nhất, vừa dùng làm Webserver cho mọi trang, vừa dùng làm Reverse Proxy cho mọi dịch vụ phụ khác
+Xuất phát ban đầu của Docker LCMP Multisite WordPress Minimal là 1 file lcmp.sh, giúp thêm và xóa các trang chạy WordPress qua Docker nhanh hơn, hoạt động xoay quanh 1 container Caddy duy nhất, vừa dùng làm Webserver cho mọi trang, vừa dùng làm Reverse Proxy cho các dịch vụ còn lại
 
-Ban đầu ý tưởng của mình là tách Caddy + PHP + Mariadb mỗi trang là 3 container khác nhau, tách biệt hoàn toàn, mà làm thế vấn đề tùy chỉnh port khá mệt người vì mỗi trang phải dùng 1 port khác nhau, cấu hình 1 Caddy nhiều PHP + Mariadb chỉ cần dùng port mặc định 80/443 là đủ, cấu hình lại nhanh hơn nên sau cùng mình chọn cách này
+Ban đầu ý tưởng của mình là tách Caddy + PHP + Mariadb ở mỗi trang ra 3 container khác nhau, tách biệt hoàn toàn, có điều làm thế vấn đề tùy chỉnh port khá mệt người vì mỗi trang phải dùng 1 port khác nhau, cấu hình 1 Caddy nhiều PHP + Mariadb chỉ cần dùng port mặc định 80/443 là đủ, cấu hình lại nhanh hơn nên sau cùng mình chọn cách này
 
 Mỗi domain sẽ có cấu hình tùy chỉnh PHP, Mariadb riêng biệt, bổ xung thêm ssl trong trường hợp cần dùng ssl từ các nguồn ngoài như Cloudflare
 ```
@@ -36,6 +36,10 @@ Docker_LCMP_Multisite_WordPress/
 └── 📁 domain3.com/ # Thư mục cho trang WordPress domain3.com
 ```
 ## Cài đặt
+Mặc định cài đặt trên 1 OS mới là được, nó sẽ tự cài đặt các thứ cần thiết để vận hành
 ```
 sudo wget https://go.bibica.net/docker-lcmp-multisite-wordPress-minimal -O lcmp.sh && sudo chmod +x lcmp.sh && sudo ./lcmp.sh
 ```
+Có thể xem video trên YouTube:
+
+[![Video Thumbnail](https://img.youtube.com/vi/Dq0iSU9kzlk/maxresdefault.jpg)](https://www.youtube.com/watch?v=Dq0iSU9kzlk)
