@@ -43,3 +43,6 @@ sudo wget https://go.bibica.net/docker-lcmp-multisite-wordPress-minimal -O lcmp.
 Có thể xem video trên YouTube:
 
 [![Video Thumbnail](https://img.youtube.com/vi/Dq0iSU9kzlk/maxresdefault.jpg)](https://www.youtube.com/watch?v=Dq0iSU9kzlk)
+
+## Backup và Restore
+backup.sh và restore.sh có thể sửa lại theo nhu cầu
