@@ -301,8 +301,8 @@ services:
       - ./config/mariadb/mariadb-$DOMAIN.cnf:/etc/my.cnf.d/mariadb-$DOMAIN.cnf
 
   wordpress.$DOMAIN:
-    #image: wordpress:php8.3-fpm-alpine
-    build: ./config/build/php
+    image: bibica/wordpress-wp-cli-php8.3-fpm-alpine
+    #build: ./config/build/php
     container_name: wordpress.$DOMAIN
     restart: always
     env_file: ./config/$DOMAIN.env
@@ -667,6 +667,8 @@ show_menu() {
     echo "3. Liệt kê các domain đã tạo"
     echo "4. Quản lý Docker Container"
     echo "0. Thoát"
+    echo
+    echo -e "Docker LCMP Multisite WordPress Minimal \033[1;31mv1.1\033[0m"
 	echo
 }
 
@@ -812,6 +814,7 @@ manage_docker() {
         esac
     done
 }
+
 
 # Xử lý tùy chọn của người dùng
 while true; do
