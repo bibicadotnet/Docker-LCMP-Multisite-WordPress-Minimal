@@ -684,14 +684,15 @@ manage_docker() {
     while true; do
         list_containers
         echo
-		echo "Chọn hành động quản lý Docker:"
+        echo "Chọn hành động quản lý Docker:"
         echo "1. Khởi động lại Caddy - Reverse Proxy"
         echo "2. Khởi động lại container domain để áp dụng cấu hình mới"
-        echo "3. Xóa các container, images, và networks không sử dụng"
-        echo "4. Truy cập vào container, ưu tiên bằng bash -> sh"
-        echo "5. Theo dõi cụ thể tình trạng container theo domain"
-        echo "6. Khởi động lại tất cả các container"
-        echo "7. Xóa toàn bộ các container và tất cả mọi thứ liên quan"
+        echo "3. Đặt quyền truy cập và quyền user cho WordPress bên trong domain"
+        echo "4. Xóa các container, images, và networks không sử dụng"
+        echo "5. Truy cập vào container, ưu tiên bằng bash -> sh"
+        echo "6. Theo dõi cụ thể tình trạng container theo domain"
+        echo "7. Khởi động lại tất cả các container"
+        echo "8. Xóa toàn bộ các container và tất cả mọi thứ liên quan"
         echo "0. Quay lại menu chính"
         echo
         read -p "Nhập tùy chọn của bạn: " docker_option
@@ -699,67 +700,81 @@ manage_docker() {
         case $docker_option in
             1)
                 echo "Đang khởi động lại Caddy - Reverse Proxy..."
-                # Khởi động lại Caddy
-				docker compose -f "$SCRIPT_DIR"/reverse_proxy/compose.yml up -d
-				docker compose -f "$SCRIPT_DIR"/reverse_proxy/compose.yml restart
-                echo "Đã khởi động lại Caddy - Reverse Proxy."
+                if docker compose -f "$SCRIPT_DIR"/reverse_proxy/compose.yml restart; then
+                    echo "Đã khởi động lại Caddy - Reverse Proxy."
+                else
+                    echo "Lỗi khi khởi động lại Caddy - Reverse Proxy."
+                fi
                 ;;
             2)
-				read -p "Nhập tên domain của bạn: " DOMAIN
-				DOMAIN_DIR="$SCRIPT_DIR/$DOMAIN"
+                read -p "Nhập tên domain của bạn: " DOMAIN
+                DOMAIN_DIR="$SCRIPT_DIR/$DOMAIN"
 
-				# Kiểm tra sự tồn tại của file compose.yml
-				if [ -f "$DOMAIN_DIR/compose.yml" ]; then
-				echo "Đã tìm thấy file compose.yml tại: $DOMAIN_DIR/compose.yml"
-    
-				# Khởi động lại container domain để áp dụng cấu hình mới
-				docker compose -f "$DOMAIN_DIR/compose.yml" up -d
-				docker compose -f "$DOMAIN_DIR/compose.yml" restart
-				echo "Đã khởi động lại container $DOMAIN để áp dụng cấu hình mới."
-				else
-					echo
-					echo "Domain không tồn tại hoặc không hợp lệ."
-					echo "Kiểm tra lại đường dẫn hoặc tên domain của bạn."
-					echo "Đường dẫn kiểm tra: $DOMAIN_DIR/compose.yml"
-				fi
+                if [ -f "$DOMAIN_DIR/compose.yml" ]; then
+                    echo "Đã tìm thấy file compose.yml tại: $DOMAIN_DIR/compose.yml"
+                    if docker compose -f "$DOMAIN_DIR/compose.yml" restart; then
+                        echo "Đã khởi động lại container $DOMAIN để áp dụng cấu hình mới."
+                    else
+                        echo "Lỗi khi khởi động lại container $DOMAIN."
+                    fi
+                else
+                    echo "Domain không tồn tại hoặc không hợp lệ."
+                    echo "Kiểm tra lại đường dẫn hoặc tên domain của bạn."
+                    echo "Đường dẫn kiểm tra: $DOMAIN_DIR/compose.yml"
+                fi
                 ;;
             3)
-                echo "Đang xóa các container đã dừng, các mạng, các hình ảnh, các volume không còn được sử dụng bởi bất kỳ container nào ."
-				docker system prune -a -f
-				echo "Đã làm sạch không gian lưu trữ của docker bằng cách xóa các thứ không còn được sử dụng ."
-				;;
+                read -p "Nhập tên domain của bạn: " DOMAIN
+                DOMAIN_DIR="$SCRIPT_DIR/$DOMAIN"
+                WWW_DIR="$DOMAIN_DIR/www"
+
+                if [ -d "$WWW_DIR" ]; then
+                    echo "Đang thay đổi quyền truy cập cho thư mục: $WWW_DIR"
+                    
+                    # Thay đổi quyền sở hữu user thành 82
+                    chown -R 82:82 "$WWW_DIR"
+                    
+                    # Thay đổi quyền truy cập thư mục thành 755 và tập tin thành 644
+                    find "$WWW_DIR" -type d -exec chmod 755 {} \;
+                    find "$WWW_DIR" -type f -exec chmod 644 {} \;
+
+                    echo "Đã thay đổi quyền truy cập thành 755 cho thư mục và 644 cho tập tin."
+                    echo "Đã thay đổi quyền user thành 82 cho thư mục $WWW_DIR"
+                else
+                    echo "Thư mục không tồn tại: $WWW_DIR"
+                fi
+                ;;
             4)
+                echo "Đang xóa các container đã dừng, các mạng, các hình ảnh, các volume không còn được sử dụng bởi bất kỳ container nào."
+                if docker system prune -a -f && docker volume prune -f && docker network prune -f; then
+                    echo "Đã làm sạch không gian lưu trữ của Docker."
+                else
+                    echo "Lỗi khi làm sạch không gian lưu trữ của Docker."
+                fi
+                ;;
+            5)
                 read -p "Nhập tên hoặc ID của container: " container_id
                 if docker inspect "$container_id" &> /dev/null; then
-                    # Truy cập vào shell của container
-                    docker exec -it "$container_id" /bin/bash || docker exec -it "$container_id" /bin/sh
-                    echo "Đã truy cập vào container."
+                    if docker exec -it "$container_id" /bin/bash 2>/dev/null || docker exec -it "$container_id" /bin/sh; then
+                        echo "Đã truy cập vào container."
+                    else
+                        echo "Lỗi khi truy cập vào container."
+                    fi
                 else
-                    echo
                     echo "Container không tồn tại hoặc không hợp lệ."
                 fi
                 ;;
-
-            5)
-                # Nhập tên domain của bạn
+            6)
                 read -p "Nhập tên domain của bạn: " DOMAIN
-
-                # Đặt đường dẫn đến thư mục chứa file compose.yml
                 DOMAIN_DIR="$SCRIPT_DIR/$DOMAIN"
 
-                # Kiểm tra sự tồn tại của file compose.yml
                 if [ -f "$DOMAIN_DIR/compose.yml" ]; then
                     echo "Đã tìm thấy file compose.yml tại: $DOMAIN_DIR/compose.yml"
-
-                    # Di chuyển đến thư mục chứa file compose.yml
                     cd "$DOMAIN_DIR" || exit
-
-                    # Lấy danh sách các container từ docker-compose.yml
                     CONTAINERS=$(docker compose ps -q)
 
                     if [ -n "$CONTAINERS" ]; then
                         echo "Danh sách container đang chạy:"
-                        # Hiển thị thống kê cho các container
                         docker stats $CONTAINERS
                     else
                         echo "Không có container nào đang chạy."
@@ -768,25 +783,25 @@ manage_docker() {
                     echo "File compose.yml không tồn tại trong thư mục: $DOMAIN_DIR"
                 fi
                 ;;
-    
-            6)
-                echo "Đang khởi động lại toàn bộ các container..."
-                # Dừng tất cả các container đang chạy
-                docker stop $(docker ps -q) 2>/dev/null
-                # Khởi động lại tất cả các container đã dừng
-                docker start $(docker ps -a -q --filter "status=exited") 2>/dev/null
-				# Khởi động lại tất cả các container đang chạy (không cần thiết, chỉ nếu bạn muốn)
-				docker restart $(docker ps -q) 2>/dev/null
-                echo "Đã khởi động lại tất cả các container đã dừng và các container đang chạy."
-                ;;
             7)
+                echo "Đang khởi động lại toàn bộ các container..."
+                if docker restart $(docker ps -q) 2>/dev/null; then
+                    echo "Đã khởi động lại toàn bộ các container."
+                else
+                    echo "Lỗi khi khởi động lại các container."
+                fi
+                ;;
+            8)
                 echo "Đang xóa toàn bộ các Docker containers, images, volumes và networks..."
-                docker stop $(docker ps -q) 2>/dev/null
-                docker rm $(docker ps -a -q) 2>/dev/null
-                docker rmi $(docker images -q) 2>/dev/null
-                docker volume rm $(docker volume ls -q) 2>/dev/null
-                docker network rm $(docker network ls -q) 2>/dev/null
-                echo "Đã xóa toàn bộ các Docker và tất cả mọi thứ liên quan."
+                if docker stop $(docker ps -q) 2>/dev/null && \
+                   docker rm $(docker ps -a -q) 2>/dev/null && \
+                   docker rmi $(docker images -q) 2>/dev/null && \
+                   docker volume rm $(docker volume ls -q) 2>/dev/null && \
+                   docker network rm $(docker network ls -q) 2>/dev/null; then
+                    echo "Đã xóa toàn bộ các Docker và tất cả mọi thứ liên quan."
+                else
+                    echo "Lỗi khi xóa các Docker và tài nguyên liên quan."
+                fi
                 ;;
             0)
                 return
