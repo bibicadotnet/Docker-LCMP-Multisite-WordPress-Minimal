@@ -46,3 +46,7 @@ Có thể xem video trên YouTube:
 
 ## Backup và Restore
 backup.sh và restore.sh có thể sửa lại theo nhu cầu
+
+## Update v1.1 
+1. Sử dụng trực tiếp image: `bibica/wordpress-wp-cli-php8.3-fpm-alpine`, đỡ mất thời gian build lại mỗi khi tạo trang WordPress mới
+2. Thêm tùy chọn 4-3. `Đặt quyền truy cập và quyền user cho WordPress bên trong domain`, chown và chmod lại thư mục WordPress, giúp sửa các lỗi nếu upload file, phân quyền lung tung
