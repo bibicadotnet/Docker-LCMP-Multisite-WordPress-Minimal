@@ -24,7 +24,7 @@ start=`date +%s`
 # Tạo backup mỗi ngày trên VPS
 mkdir -p /var/backups/lcmp
 rm -f /var/backups/lcmp/backup_$(/bin/date +%d.%m.%Y).tar.zst
-tar -cpf - /home var/spool/cron/crontabs/root | zstd -1 -o /var/backups/lcmp/backup_$(/bin/date +%d.%m.%Y).tar.zst
+tar -cpf - /home /var/spool/cron/crontabs/root | zstd -1 -o /var/backups/lcmp/backup_$(/bin/date +%d.%m.%Y).tar.zst
 
 # Chuyển backup mỗi ngày vào Google Drive
 rclone copy /var/backups/lcmp/backup_$(/bin/date +%d.%m.%Y).tar.zst google-drive:bibica-net/_docker_full_backup_daily --progress
