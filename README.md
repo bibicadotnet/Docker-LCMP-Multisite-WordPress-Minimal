@@ -36,14 +36,38 @@ Docker_LCMP_Multisite_WordPress/
 └── 📁 domain3.com/ # Thư mục cho trang WordPress domain3.com
 ```
 ## Cài đặt
-Mặc định cài đặt trên 1 OS mới là được, nó sẽ tự cài đặt các thứ cần thiết để vận hành
+Mặc định cài đặt với quyền `root` trên 1 VPS mới, chưa cài đặt gì, nó sẽ tự cài đặt các thứ cần thiết để vận hành
+- Thời gian cài đặt trung bình 2-3 phút
 ```
 sudo wget https://go.bibica.net/docker-lcmp-multisite-wordPress-minimal -O lcmp.sh && sudo chmod +x lcmp.sh && sudo ./lcmp.sh
 ```
 Có thể xem video trên YouTube:
 
 [![Video Thumbnail](https://img.youtube.com/vi/Dq0iSU9kzlk/maxresdefault.jpg)](https://www.youtube.com/watch?v=Dq0iSU9kzlk)
-
+## Sử dụng
+Sau khi cài đặt xong, gõ nhanh `lcmp` để truy cập trực tiếp
+```
+Chọn hành động:
+1. Tạo domain mới
+2. Xóa domain
+3. Liệt kê các domain đã tạo
+4. Quản lý Docker Container
+0. Thoát
+```
+Quản lý Docker Container
+```
+Chọn hành động quản lý Docker:
+1. Khởi động lại Caddy - Reverse Proxy
+2. Khởi động lại container domain để áp dụng cấu hình mới
+3. Đặt quyền truy cập và quyền user cho WordPress bên trong domain
+4. Xóa các container, images, và networks không sử dụng
+5. Truy cập vào container, ưu tiên bằng bash -> sh
+6. Theo dõi cụ thể tình trạng container theo domain
+7. Khởi động lại tất cả các container
+8. Cập nhật tất cả images container cho tất cả domain
+9. Xóa toàn bộ các container và tất cả mọi thứ liên quan
+0. Quay lại menu chính
+```
 ## Backup và Restore
 backup.sh và restore.sh có thể sửa lại theo nhu cầu
 
