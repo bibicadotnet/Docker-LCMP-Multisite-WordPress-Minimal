@@ -668,7 +668,7 @@ show_menu() {
     echo "4. Quản lý Docker Container"
     echo "0. Thoát"
     echo
-    echo -e "Docker LCMP Multisite WordPress Minimal \033[1;31mv1.1\033[0m"
+    echo -e "Docker LCMP Multisite WordPress Minimal \033[1;31mv1.2\033[0m"
 	echo
 }
 
@@ -694,7 +694,8 @@ manage_docker() {
         echo "5. Truy cập vào container, ưu tiên bằng bash -> sh"
         echo "6. Theo dõi cụ thể tình trạng container theo domain"
         echo "7. Khởi động lại tất cả các container"
-        echo "8. Xóa toàn bộ các container và tất cả mọi thứ liên quan"
+        echo "8. Cập nhật tất cả images container cho tất cả domain"
+        echo "9. Xóa toàn bộ các container và tất cả mọi thứ liên quan"
         echo "0. Quay lại menu chính"
         echo
         read -p "Nhập tùy chọn của bạn: " docker_option
@@ -794,6 +795,23 @@ manage_docker() {
                 fi
                 ;;
             8)
+                echo "Đang cập nhật tất cả images container cho tất cả domain..."
+                for domain_dir in "$SCRIPT_DIR"/*/; do
+                    DOMAIN=$(basename "$domain_dir")
+                    COMPOSE_FILE="$domain_dir/compose.yml"
+                    if [ -f "$COMPOSE_FILE" ]; then
+                        echo "Đang cập nhật images cho domain $DOMAIN..."
+                        # Cập nhật images mới
+                        docker compose -f "$COMPOSE_FILE" pull
+                        # Sau khi kéo xong, khởi động lại các container để áp dụng image mới
+                        docker compose -f "$COMPOSE_FILE" up -d
+                        echo "Đã cập nhật images và khởi động lại container cho domain $DOMAIN."
+                    else
+                        echo "Không tìm thấy compose.yml cho domain $DOMAIN."
+                    fi
+                done
+                ;;
+            9)
                 echo "Đang xóa toàn bộ các Docker containers, images, volumes và networks..."
                 if docker stop $(docker ps -q) 2>/dev/null && \
                    docker rm $(docker ps -a -q) 2>/dev/null && \
