@@ -53,3 +53,4 @@ backup.sh và restore.sh có thể sửa lại theo nhu cầu
 3. Thêm tùy chọn 4-3. `Đặt quyền truy cập và quyền user cho WordPress bên trong domain`, chown và chmod lại thư mục WordPress, giúp sửa các lỗi nếu upload file, phân quyền lung tung
 ## Update v1.2
 1. Thêm tùy chọn `8. Cập nhật tất cả images container cho tất cả domain` (Lý do là sau 3-6 tháng sử dụng, có thể phiên bản images đã lỗi thời, thêm lệnh này để cập nhập tất cả images mới nhất)
+2. Sử dụng [Github Actions](https://github.com/bibicadotnet/Docker-Images-LCMP) để tự cập nhập images bibica/wordpress-wp-cli-php8.3-fpm-alpine lên phiên bản mới nhất
