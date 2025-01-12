@@ -37,6 +37,11 @@ sysctl -p
 # Cài đặt múi giờ Việt Nam
 timedatectl set-timezone Asia/Ho_Chi_Minh
 
+# Cài đặt Chrony, đồng bộ thời gian
+apt-get install -y chrony
+systemctl start chrony
+systemctl enable chrony
+  
 # Cấu hình DNS Server
 echo -e "nameserver 8.8.8.8\nnameserver 1.1.1.1" > /etc/resolv.conf
 
@@ -220,6 +225,7 @@ systemctl restart docker
 
 ######################################################
 # Thông báo kết quả
+echo
 echo "Cấu hình VPS chạy Docker LCMP Multisite WordPress Minimal đã hoàn tất!"
 echo "Cập nhật hoàn tất:"
 echo "- Các thay đổi đã được thực hiện:"
@@ -228,10 +234,12 @@ echo "  - Hệ thống đã được cập nhật và nâng cấp."
 echo "  - Firewall đã được tắt."
 echo "  - IPv6 đã bị tắt."
 echo "  - Múi giờ đã được cài đặt thành Asia/Ho_Chi_Minh."
+echo "  - Cài đặt Chrony, đồng bộ thời gian chính xác hơn."
 echo "  - DNS Server đã được cấu hình với Cloudflare, Google"
 echo "  - TCP BBR đã được kích hoạt."
 echo "  - Cấu hình Sysctl đã được cập nhật cho ${ram_size}GB RAM."
 echo "  - Swapfile đã được tạo và kích hoạt với kích thước ${swap_size}GB."
 echo "  - Cài đặt các công cụ cơ bản curl wget git htop unzip nano zip zstd."
 echo "  - Cài đặt Docker và tối ưu hóa hiệu suất Docker."
+echo
 ######################################################
