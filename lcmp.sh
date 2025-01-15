@@ -249,33 +249,91 @@ fi
 
 update_script() {
     echo "Đang cập nhật script..."
+    
+    # Kiểm tra quyền ghi vào thư mục chứa script
+    if [ ! -w "$(dirname "$SCRIPT_PATH")" ]; then
+        echo "Lỗi: Không có quyền ghi vào thư mục $(dirname "$SCRIPT_PATH")"
+        echo "Vui lòng chạy với sudo: sudo lcmp"
+        exit 1
+    }
+
     # Tạo temporary file
     TMP_FILE=$(mktemp)
+    echo "Tạo file tạm thời tại: $TMP_FILE"
+
+    # Lưu nội dung cũ để đối chiếu
+    OLD_CONTENT=$(cat "$SCRIPT_PATH")
     
-    # Download script mới
-    if curl -sL "https://raw.githubusercontent.com/bibicadotnet/Docker-LCMP-Multisite-WordPress-Minimal/main/lcmp.sh" -o "$TMP_FILE"; then
-        # Kiểm tra xem file tải về có nội dung không
+    # Download script mới với verbose để thấy quá trình download
+    echo "Đang tải script mới từ GitHub..."
+    if curl -v "https://raw.githubusercontent.com/bibicadotnet/Docker-LCMP-Multisite-WordPress-Minimal/main/lcmp.sh" -o "$TMP_FILE" 2>/tmp/curl_error.log; then
+        # Kiểm tra kích thước file
+        NEW_SIZE=$(stat -f%z "$TMP_FILE" 2>/dev/null || stat -c%s "$TMP_FILE")
+        echo "Kích thước file mới: $NEW_SIZE bytes"
+
         if [ -s "$TMP_FILE" ]; then
+            # So sánh nội dung mới và cũ
+            NEW_CONTENT=$(cat "$TMP_FILE")
+            if [ "$OLD_CONTENT" = "$NEW_CONTENT" ]; then
+                echo "Nội dung file không có thay đổi. Không cần cập nhật."
+                rm -f "$TMP_FILE"
+                exit 0
+            fi
+
             # Sao chép quyền từ script cũ
+            echo "Đang sao chép quyền thực thi..."
             chmod --reference="$SCRIPT_PATH" "$TMP_FILE"
             
+            # Backup file cũ
+            BACKUP_FILE="${SCRIPT_PATH}.backup"
+            echo "Tạo backup tại: $BACKUP_FILE"
+            cp "$SCRIPT_PATH" "$BACKUP_FILE"
+            
             # Di chuyển file mới vào vị trí của script cũ
+            echo "Đang thay thế script cũ..."
             if mv "$TMP_FILE" "$SCRIPT_PATH"; then
-                echo "Cập nhật thành công! Script đã được cập nhật lên phiên bản mới nhất."
-                echo "Vui lòng chạy lại script để sử dụng phiên bản mới."
-                exit 0
+                # Kiểm tra lại sau khi cập nhật
+                if [ -f "$SCRIPT_PATH" ]; then
+                    UPDATED_CONTENT=$(cat "$SCRIPT_PATH")
+                    if [ "$NEW_CONTENT" = "$UPDATED_CONTENT" ]; then
+                        echo "Kiểm tra sau cập nhật: Thành công"
+                        echo "Cập nhật hoàn tất! Script đã được cập nhật lên phiên bản mới nhất."
+                        echo "Vị trí script: $SCRIPT_PATH"
+                        echo "Backup được lưu tại: $BACKUP_FILE"
+                        echo "Vui lòng chạy lại script để sử dụng phiên bản mới."
+                        exit 0
+                    else
+                        echo "Lỗi: Nội dung file sau cập nhật không khớp!"
+                        echo "Đang khôi phục từ backup..."
+                        mv "$BACKUP_FILE" "$SCRIPT_PATH"
+                        rm -f "$TMP_FILE"
+                        exit 1
+                    fi
+                else
+                    echo "Lỗi: Không tìm thấy script sau khi cập nhật!"
+                    echo "Đang khôi phục từ backup..."
+                    mv "$BACKUP_FILE" "$SCRIPT_PATH"
+                    rm -f "$TMP_FILE"
+                    exit 1
+                fi
             else
-                echo "Lỗi: Không thể thay thế script cũ. Có thể bạn cần quyền sudo."
+                echo "Lỗi: Không thể thay thế script cũ."
+                echo "Chi tiết lỗi mv:"
+                mv -v "$TMP_FILE" "$SCRIPT_PATH"
                 rm -f "$TMP_FILE"
                 exit 1
             fi
         else
-            echo "Lỗi: File tải về trống."
+            echo "Lỗi: File tải về trống!"
+            echo "Nội dung log curl:"
+            cat /tmp/curl_error.log
             rm -f "$TMP_FILE"
             exit 1
         fi
     else
-        echo "Lỗi: Không thể tải script mới."
+        echo "Lỗi: Không thể tải script mới!"
+        echo "Nội dung log curl:"
+        cat /tmp/curl_error.log
         rm -f "$TMP_FILE"
         exit 1
     fi
