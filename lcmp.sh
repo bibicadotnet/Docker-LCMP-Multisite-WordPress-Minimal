@@ -250,18 +250,23 @@ fi
 # Hàm để cập nhật script
 update_script() {
     TEMP_FILE=$(mktemp) # Tạo file tạm
-    echo "Đang tải bản cập nhật mới nhất..."
-    sudo wget https://raw.githubusercontent.com/bibicadotnet/Docker-LCMP-Multisite-WordPress-Minimal/refs/heads/main/lcmp.sh -O "$TEMP_FILE"
+    echo "Đang tải bản cập nhật mới nhất từ GitHub..."
+    sudo wget --no-cache --timestamping https://go.bibica.net/docker-lcmp-multisite-wordPress-minimal -O "$TEMP_FILE"
 
     if [ $? -eq 0 ]; then
-        echo "Đã tải bản cập nhật thành công. Ghi đè file cũ..."
-        sudo mv "$TEMP_FILE" "$SCRIPT_PATH"
-        sudo chmod +x "$SCRIPT_PATH"
-        echo "Cập nhật thành công. Chạy lại script mới..."
-        hash -r # Xóa bộ nhớ đệm shell
-        exec "$SCRIPT_PATH" "$@" # Chạy lại script
+        if [ -f "$TEMP_FILE" ]; then
+            echo "Đã tải thành công bản cập nhật. Ghi đè file cũ..."
+            sudo mv "$TEMP_FILE" "$SCRIPT_PATH"
+            sudo chmod +x "$SCRIPT_PATH"
+            echo "Cập nhật thành công. Chạy lại script mới..."
+            hash -r # Xóa bộ nhớ đệm của shell
+            exec "$SCRIPT_PATH" "$@" # Chạy lại script
+        else
+            echo "Lỗi: Không tìm thấy file tạm để ghi đè."
+            exit 1
+        fi
     else
-        echo "Lỗi: Không thể tải bản cập nhật. Vui lòng kiểm tra lại kết nối."
+        echo "Lỗi: Không thể tải bản cập nhật. Vui lòng kiểm tra lại URL hoặc kết nối mạng."
         rm -f "$TEMP_FILE"
         exit 1
     fi
