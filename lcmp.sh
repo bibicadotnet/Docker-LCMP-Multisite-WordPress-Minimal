@@ -713,7 +713,7 @@ show_menu() {
     echo "9. Cập nhập LCMP lên phiên bản mới"	
     echo "0. Thoát"
     echo
-    echo -e "Docker LCMP Multisite WordPress Minimal \033[1;31mv1.3\033[0m"
+    echo -e "Docker LCMP Multisite WordPress Minimal \033[1;31mv1.4\033[0m"
     echo -e "PHP \033[1;34mv8.3\033[0m - Caddy \033[1;32mv2.9.1\033[0m - Mariadb \033[1;33mv10.11.10\033[0m"
 	echo
 }
