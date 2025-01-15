@@ -251,7 +251,7 @@ update_script() {
     TEMP_FILE=$(mktemp) # Tạo file tạm
     echo "Đang tải bản cập nhật mới nhất từ GitHub..."
     
-    # Tải file mới vào file tạm, với tham số timestamp để tránh cache
+    # Tải file mới vào file tạm
     sudo wget --no-cache "https://raw.githubusercontent.com/bibicadotnet/Docker-LCMP-Multisite-WordPress-Minimal/main/lcmp.sh?$(date +%s)" -O "$TEMP_FILE"
     if [ $? -ne 0 ]; then
         echo "Lỗi: Không thể tải bản cập nhật. Vui lòng kiểm tra lại URL hoặc kết nối mạng."
@@ -267,14 +267,17 @@ update_script() {
         sudo mv "$TEMP_FILE" "$SCRIPT_PATH"
         sudo chmod +x "$SCRIPT_PATH"
         
+        # Xóa alias cũ để tránh bị lưu trong bộ nhớ đệm
+        unalias lcmp 2>/dev/null
+
         # Cập nhật alias mới trong file cấu hình shell
         echo "Cập nhật thành công. Chạy lại script mới..."
 
-        # Xóa alias cũ và thêm alias mới vào .bashrc hoặc file cấu hình shell tương ứng
+        # Cập nhật alias mới vào file cấu hình shell
         sed -i '/^alias lcmp=/d' ~/.bashrc  # Xóa alias cũ
         echo "alias lcmp='$SCRIPT_PATH'" >> ~/.bashrc  # Thêm alias mới
         
-        # Nạp lại cấu hình shell và làm mới alias
+        # Nạp lại cấu hình shell
         source ~/.bashrc  # Hoặc ~/.zshrc nếu bạn dùng zsh
 
         # Xóa bộ nhớ đệm alias trong shell hiện tại
@@ -288,6 +291,7 @@ update_script() {
         exit 1
     fi
 }
+
 
 
 
