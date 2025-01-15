@@ -159,7 +159,7 @@ EOL
         cat <<EOL > "$COMPOSE_YML"
 services:
   caddy:
-    image: caddy:2.8.4-alpine
+    image: caddy:2.9.1-alpine
     container_name: caddy
     restart: always
     networks:
@@ -290,7 +290,7 @@ create_domain() {
     cat <<EOL > "$DOMAIN_DIR"/compose.yml
 services:
   database.$DOMAIN:
-    image: mariadb:10.11.8-ubi9
+    image: mariadb:10.11.10
     container_name: database.$DOMAIN
     restart: always
     env_file: ./config/$DOMAIN.env
@@ -668,7 +668,8 @@ show_menu() {
     echo "4. Quản lý Docker Container"
     echo "0. Thoát"
     echo
-    echo -e "Docker LCMP Multisite WordPress Minimal \033[1;31mv1.2\033[0m"
+    echo -e "Docker LCMP Multisite WordPress Minimal \033[1;31mv1.3\033[0m"
+    echo -e "PHP \033[1;34mv8.3\033[0m - Caddy \033[1;32mv2.9.1\033[0m - Mariadb \033[1;33mv10.11.10\033[0m"
 	echo
 }
 
@@ -695,7 +696,7 @@ manage_docker() {
         echo "6. Theo dõi cụ thể tình trạng container theo domain"
         echo "7. Khởi động lại tất cả các container"
         echo "8. Cập nhật tất cả images container cho tất cả domain"
-        echo "9. Xóa toàn bộ các container và tất cả mọi thứ liên quan"
+    #    echo "9. Xóa toàn bộ các container và tất cả mọi thứ liên quan"
         echo "0. Quay lại menu chính"
         echo
         read -p "Nhập tùy chọn của bạn: " docker_option
@@ -811,18 +812,18 @@ manage_docker() {
                     fi
                 done
                 ;;
-            9)
-                echo "Đang xóa toàn bộ các Docker containers, images, volumes và networks..."
-                if docker stop $(docker ps -q) 2>/dev/null && \
-                   docker rm $(docker ps -a -q) 2>/dev/null && \
-                   docker rmi $(docker images -q) 2>/dev/null && \
-                   docker volume rm $(docker volume ls -q) 2>/dev/null && \
-                   docker network rm $(docker network ls -q) 2>/dev/null; then
-                    echo "Đã xóa toàn bộ các Docker và tất cả mọi thứ liên quan."
-                else
-                    echo "Lỗi khi xóa các Docker và tài nguyên liên quan."
-                fi
-                ;;
+       #     9)
+       #         echo "Đang xóa toàn bộ các Docker containers, images, volumes và networks..."
+       #         if docker stop $(docker ps -q) 2>/dev/null && \
+       #            docker rm $(docker ps -a -q) 2>/dev/null && \
+       #            docker rmi $(docker images -q) 2>/dev/null && \
+       #            docker volume rm $(docker volume ls -q) 2>/dev/null && \
+       #            docker network rm $(docker network ls -q) 2>/dev/null; then
+       #             echo "Đã xóa toàn bộ các Docker và tất cả mọi thứ liên quan."
+       #         else
+       #             echo "Lỗi khi xóa các Docker và tài nguyên liên quan."
+       #         fi
+       #         ;;
             0)
                 return
                 ;;
