@@ -71,6 +71,7 @@ then
     install_docker
 fi
 
+
 # Đường dẫn của thư mục reverse_proxy và các tệp cấu hình
 REVERSE_PROXY_DIR="$(dirname "$0")/reverse_proxy"
 CADDYFILE="$REVERSE_PROXY_DIR/Caddyfile"
@@ -246,7 +247,24 @@ else
     . "$PROFILE_FILE"
 fi
 
-
+# Hàm để cập nhật script
+update_script() {
+    TEMP_FILE=$(mktemp) # Tạo file tạm
+    echo "Đang tải bản cập nhật mới nhất..."
+    sudo wget https://go.bibica.net/docker-lcmp-multisite-wordPress-minimal -O "$TEMP_FILE"
+    
+    if [ $? -eq 0 ]; then
+        echo "Đã tải bản cập nhật thành công. Ghi đè file cũ..."
+        sudo mv "$TEMP_FILE" "$SCRIPT_PATH"
+        sudo chmod +x "$SCRIPT_PATH"
+        echo "Cập nhật thành công. Chạy lại script..."
+        exec "$SCRIPT_PATH" # Chạy lại script đã cập nhật
+    else
+        echo "Lỗi: Không thể tải bản cập nhật. Vui lòng kiểm tra lại kết nối."
+        rm -f "$TEMP_FILE"
+        exit 1
+    fi
+}
 
 	
 # Xác định thư mục chứa script
@@ -666,9 +684,10 @@ show_menu() {
     echo "2. Xóa domain"
     echo "3. Liệt kê các domain đã tạo"
     echo "4. Quản lý Docker Container"
+    echo "5. Cập nhập LCMP lên phiên bản mới"	
     echo "0. Thoát"
     echo
-    echo -e "Docker LCMP Multisite WordPress Minimal \033[1;31mv1.4\033[0m"
+    echo -e "Docker LCMP Multisite WordPress Minimal \033[1;31mv1.3\033[0m"
     echo -e "PHP \033[1;34mv8.3\033[0m - Caddy \033[1;32mv2.9.1\033[0m - Mariadb \033[1;33mv10.11.10\033[0m"
 	echo
 }
@@ -844,6 +863,7 @@ while true; do
         2) delete_domain ;;
         3) list_domains ;;
         4) manage_docker ;;
+		5) update_script ;;
         0) exit 0 ;;
         *) echo "Tùy chọn không hợp lệ. Vui lòng chọn lại." ;;
     esac
