@@ -251,7 +251,7 @@ update_script() {
     TEMP_FILE=$(mktemp) # Tạo file tạm
     echo "Đang tải bản cập nhật mới nhất từ GitHub..."
     
-    # Tải file mới vào file tạm
+    # Tải file mới vào file tạm, với tham số timestamp để tránh cache
     sudo wget --no-cache "https://raw.githubusercontent.com/bibicadotnet/Docker-LCMP-Multisite-WordPress-Minimal/main/lcmp.sh?$(date +%s)" -O "$TEMP_FILE"
     if [ $? -ne 0 ]; then
         echo "Lỗi: Không thể tải bản cập nhật. Vui lòng kiểm tra lại URL hoặc kết nối mạng."
@@ -262,17 +262,29 @@ update_script() {
     # Xác minh file tạm tải thành công
     if [ -s "$TEMP_FILE" ]; then
         echo "Đã tải thành công bản cập nhật. Ghi đè file cũ..."
-        sudo mv "$TEMP_FILE" "$SCRIPT_PATH" # Ghi đè file cũ bằng file mới
-        sudo chmod +x "$SCRIPT_PATH"       # Đảm bảo quyền thực thi
+        
+        # Ghi đè file cũ bằng file mới và cấp quyền thực thi cho file mới
+        sudo mv "$TEMP_FILE" "$SCRIPT_PATH"
+        sudo chmod +x "$SCRIPT_PATH"
+        
+        # Làm mới alias và cấu hình shell
         echo "Cập nhật thành công. Chạy lại script mới..."
-        hash -r # Xóa bộ nhớ đệm shell
-        exec "$SCRIPT_PATH" "$@" # Thay thế bằng phiên bản mới của script
+
+        # Cập nhật alias mới trong file cấu hình shell
+        source ~/.bashrc  # Hoặc ~/.zshrc nếu bạn dùng zsh
+
+        # Xóa bộ nhớ đệm alias trong shell hiện tại
+        hash -r
+        
+        # Thực thi lại script cập nhật
+        exec "$SCRIPT_PATH" "$@" # Thay thế script cũ bằng script mới
     else
         echo "Lỗi: File tải về rỗng. Không thực hiện cập nhật."
         rm -f "$TEMP_FILE" # Xóa file tạm
         exit 1
     fi
 }
+
 
 
 	
