@@ -684,7 +684,7 @@ show_menu() {
     echo "2. Xóa domain"
     echo "3. Liệt kê các domain đã tạo"
     echo "4. Quản lý Docker Container"
-    echo "5. Cập nhập LCMP lên phiên bản mới"	
+    echo "9. Cập nhập LCMP lên phiên bản mới"	
     echo "0. Thoát"
     echo
     echo -e "Docker LCMP Multisite WordPress Minimal \033[1;31mv1.3\033[0m"
@@ -863,7 +863,7 @@ while true; do
         2) delete_domain ;;
         3) list_domains ;;
         4) manage_docker ;;
-	5) update_script ;;
+	9) update_script ;;
         0) exit 0 ;;
         *) echo "Tùy chọn không hợp lệ. Vui lòng chọn lại." ;;
     esac
