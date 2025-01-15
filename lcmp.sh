@@ -252,7 +252,7 @@ update_script() {
     echo "Đang tải bản cập nhật mới nhất từ GitHub..."
     
     # Tải file mới vào file tạm
-    sudo wget --no-cache "https://go.bibica.net/docker-lcmp-multisite-wordPress-minimal?$(date +%s)" -O "$TEMP_FILE"
+    sudo wget --no-cache "https://raw.githubusercontent.com/bibicadotnet/Docker-LCMP-Multisite-WordPress-Minimal/main/lcmp.sh?$(date +%s)" -O "$TEMP_FILE"
     if [ $? -ne 0 ]; then
         echo "Lỗi: Không thể tải bản cập nhật. Vui lòng kiểm tra lại URL hoặc kết nối mạng."
         rm -f "$TEMP_FILE" # Xóa file tạm nếu lỗi
