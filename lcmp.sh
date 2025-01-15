@@ -251,7 +251,7 @@ fi
 update_script() {
     TEMP_FILE=$(mktemp) # Tạo file tạm
     echo "Đang tải bản cập nhật mới nhất từ GitHub..."
-    sudo wget --no-cache https://go.bibica.net/docker-lcmp-multisite-wordPress-minimal -O "$TEMP_FILE"
+    sudo wget --no-cache https://raw.githubusercontent.com/bibicadotnet/Docker-LCMP-Multisite-WordPress-Minimal/main/lcmp.sh -O "$TEMP_FILE"
 
     if [ $? -eq 0 ]; then
         if [ -f "$TEMP_FILE" ]; then
