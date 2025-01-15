@@ -267,10 +267,14 @@ update_script() {
         sudo mv "$TEMP_FILE" "$SCRIPT_PATH"
         sudo chmod +x "$SCRIPT_PATH"
         
-        # Làm mới alias và cấu hình shell
+        # Cập nhật alias mới trong file cấu hình shell
         echo "Cập nhật thành công. Chạy lại script mới..."
 
-        # Cập nhật alias mới trong file cấu hình shell
+        # Xóa alias cũ và thêm alias mới vào .bashrc hoặc file cấu hình shell tương ứng
+        sed -i '/^alias lcmp=/d' ~/.bashrc  # Xóa alias cũ
+        echo "alias lcmp='$SCRIPT_PATH'" >> ~/.bashrc  # Thêm alias mới
+        
+        # Nạp lại cấu hình shell và làm mới alias
         source ~/.bashrc  # Hoặc ~/.zshrc nếu bạn dùng zsh
 
         # Xóa bộ nhớ đệm alias trong shell hiện tại
@@ -284,6 +288,7 @@ update_script() {
         exit 1
     fi
 }
+
 
 
 
