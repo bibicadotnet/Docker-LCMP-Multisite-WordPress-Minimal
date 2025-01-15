@@ -863,7 +863,7 @@ while true; do
         2) delete_domain ;;
         3) list_domains ;;
         4) manage_docker ;;
-		5) update_script ;;
+	5) update_script ;;
         0) exit 0 ;;
         *) echo "Tùy chọn không hợp lệ. Vui lòng chọn lại." ;;
     esac
