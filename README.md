@@ -52,6 +52,7 @@ Chọn hành động:
 2. Xóa domain
 3. Liệt kê các domain đã tạo
 4. Quản lý Docker Container
+5. Cập nhập LCMP lên phiên bản mới
 0. Thoát
 ```
 Quản lý Docker Container
@@ -65,7 +66,6 @@ Chọn hành động quản lý Docker:
 6. Theo dõi cụ thể tình trạng container theo domain
 7. Khởi động lại tất cả các container
 8. Cập nhật tất cả images container cho tất cả domain
-9. Xóa toàn bộ các container và tất cả mọi thứ liên quan
 0. Quay lại menu chính
 ```
 ## Backup và Restore
@@ -78,3 +78,7 @@ backup.sh và restore.sh có thể sửa lại theo nhu cầu
 ## Update v1.2
 1. Thêm tùy chọn `8. Cập nhật tất cả images container cho tất cả domain` (Lý do là sau 3-6 tháng sử dụng, có thể phiên bản images đã lỗi thời, thêm lệnh này để cập nhập tất cả images mới nhất)
 2. Sử dụng [Github Actions](https://github.com/bibicadotnet/Docker-Images-LCMP) để tự cập nhập images bibica/wordpress-wp-cli-php8.3-fpm-alpine lên phiên bản mới nhất
+## Update v1.3
+1. Bỏ đi tùy chọn `9. Xóa toàn bộ các container và tất cả mọi thứ liên quan` vì khá dễ ấn nhầm, xóa luôn sạch dữ liệu cũ
+2. Bổ xung tùy chọn `5. Cập nhập LCMP lên phiên bản mới` để sau này cập nhập tiện hơn
+3. Cập nhập PHP v8.3 - Caddy v2.9.1 - Mariadb v10.11.10
