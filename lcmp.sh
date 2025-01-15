@@ -251,7 +251,7 @@ fi
 update_script() {
     TEMP_FILE=$(mktemp) # Tạo file tạm
     echo "Đang tải bản cập nhật mới nhất..."
-    sudo wget https://go.bibica.net/docker-lcmp-multisite-wordPress-minimal -O "$TEMP_FILE"
+    sudo wget https://raw.githubusercontent.com/bibicadotnet/Docker-LCMP-Multisite-WordPress-Minimal/refs/heads/main/lcmp.sh -O "$TEMP_FILE"
 
     if [ $? -eq 0 ]; then
         echo "Đã tải bản cập nhật thành công. Ghi đè file cũ..."
