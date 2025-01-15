@@ -253,9 +253,16 @@ update_script() {
     # Tạo temporary file
     TMP_FILE=$(mktemp)
     
-    # Download script mới
-    if curl -s "https://raw.githubusercontent.com/bibicadotnet/Docker-LCMP-Multisite-WordPress-Minimal/main/lcmp.sh" > "$TMP_FILE"; then
+    # Download script mới với các tùy chọn no-cache
+    if curl -H "Cache-Control: no-cache, no-store" -H "Pragma: no-cache" -s "https://raw.githubusercontent.com/bibicadotnet/Docker-LCMP-Multisite-WordPress-Minimal/main/lcmp.sh" > "$TMP_FILE"; then
         if [ -s "$TMP_FILE" ]; then
+            # So sánh nội dung mới và cũ
+            if diff "$TMP_FILE" "$SCRIPT_PATH" >/dev/null; then
+                echo "Không có cập nhật mới."
+                rm -f "$TMP_FILE"
+                exit 0
+            fi
+            
             # Sao chép quyền từ script cũ
             chmod --reference="$SCRIPT_PATH" "$TMP_FILE"
             
@@ -274,7 +281,7 @@ update_script() {
                 fi
                 
                 echo "Cập nhật thành công! Script đã được cập nhật lên phiên bản mới nhất."
-                echo "Vui lòng chạy lại lệnh 'lcmp' để sử dụng phiên bản mới."
+                echo "Vui lòng mở terminal mới và chạy lại lệnh 'lcmp' để sử dụng phiên bản mới."
                 exit 0
             else
                 echo "Lỗi: Không thể thay thế script cũ. Có thể bạn cần quyền sudo."
