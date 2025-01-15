@@ -248,52 +248,38 @@ else
 fi
 
 update_script() {
-    TEMP_FILE=$(mktemp) # Tạo file tạm
-    echo "Đang tải bản cập nhật mới nhất từ GitHub..."
+    echo "Đang cập nhật script..."
+    # Tạo temporary file
+    TMP_FILE=$(mktemp)
     
-    # Tải file mới vào file tạm
-    sudo wget --no-cache "https://raw.githubusercontent.com/bibicadotnet/Docker-LCMP-Multisite-WordPress-Minimal/main/lcmp.sh?$(date +%s)" -O "$TEMP_FILE"
-    if [ $? -ne 0 ]; then
-        echo "Lỗi: Không thể tải bản cập nhật. Vui lòng kiểm tra lại URL hoặc kết nối mạng."
-        rm -f "$TEMP_FILE" # Xóa file tạm nếu lỗi
-        exit 1
-    fi
-
-    # Xác minh file tạm tải thành công
-    if [ -s "$TEMP_FILE" ]; then
-        echo "Đã tải thành công bản cập nhật. Ghi đè file cũ..."
-        
-        # Ghi đè file cũ bằng file mới và cấp quyền thực thi cho file mới
-        sudo mv "$TEMP_FILE" "$SCRIPT_PATH"
-        sudo chmod +x "$SCRIPT_PATH"
-        
-        # Xóa alias cũ để tránh bị lưu trong bộ nhớ đệm
-        unalias lcmp 2>/dev/null
-
-        # Cập nhật alias mới trong file cấu hình shell
-        echo "Cập nhật thành công. Chạy lại script mới..."
-
-        # Cập nhật alias mới vào file cấu hình shell
-        sed -i '/^alias lcmp=/d' ~/.bashrc  # Xóa alias cũ
-        echo "alias lcmp='$SCRIPT_PATH'" >> ~/.bashrc  # Thêm alias mới
-        
-        # Nạp lại cấu hình shell
-        source ~/.bashrc  # Hoặc ~/.zshrc nếu bạn dùng zsh
-
-        # Xóa bộ nhớ đệm alias trong shell hiện tại
-        hash -r
-        
-        # Thực thi lại script cập nhật
-        exec "$SCRIPT_PATH" "$@" # Thay thế script cũ bằng script mới
+    # Download script mới
+    if curl -sL "https://raw.githubusercontent.com/bibicadotnet/Docker-LCMP-Multisite-WordPress-Minimal/main/lcmp.sh" -o "$TMP_FILE"; then
+        # Kiểm tra xem file tải về có nội dung không
+        if [ -s "$TMP_FILE" ]; then
+            # Sao chép quyền từ script cũ
+            chmod --reference="$SCRIPT_PATH" "$TMP_FILE"
+            
+            # Di chuyển file mới vào vị trí của script cũ
+            if mv "$TMP_FILE" "$SCRIPT_PATH"; then
+                echo "Cập nhật thành công! Script đã được cập nhật lên phiên bản mới nhất."
+                echo "Vui lòng chạy lại script để sử dụng phiên bản mới."
+                exit 0
+            else
+                echo "Lỗi: Không thể thay thế script cũ. Có thể bạn cần quyền sudo."
+                rm -f "$TMP_FILE"
+                exit 1
+            fi
+        else
+            echo "Lỗi: File tải về trống."
+            rm -f "$TMP_FILE"
+            exit 1
+        fi
     else
-        echo "Lỗi: File tải về rỗng. Không thực hiện cập nhật."
-        rm -f "$TEMP_FILE" # Xóa file tạm
+        echo "Lỗi: Không thể tải script mới."
+        rm -f "$TMP_FILE"
         exit 1
     fi
 }
-
-
-
 
 
 	
