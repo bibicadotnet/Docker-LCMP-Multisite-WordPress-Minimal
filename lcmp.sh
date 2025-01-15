@@ -247,31 +247,33 @@ else
     . "$PROFILE_FILE"
 fi
 
-# Hàm để cập nhật script
 update_script() {
     TEMP_FILE=$(mktemp) # Tạo file tạm
     echo "Đang tải bản cập nhật mới nhất từ GitHub..."
-    sudo wget --no-cache https://raw.githubusercontent.com/bibicadotnet/Docker-LCMP-Multisite-WordPress-Minimal/main/lcmp.sh -O "$TEMP_FILE"
-
-    if [ $? -eq 0 ]; then
-        if [ -f "$TEMP_FILE" ]; then
-            echo "Đã tải thành công bản cập nhật. Ghi đè file cũ..."
-            sudo mv "$TEMP_FILE" "$SCRIPT_PATH"
-            sudo chmod +x "$SCRIPT_PATH"
-            echo "Cập nhật thành công. Chạy lại script mới..."
-            hash -r # Xóa bộ nhớ đệm của shell
-            exec "$SCRIPT_PATH" "$@" # Chạy lại script
-        else
-            echo "Lỗi: Không tìm thấy file tạm để ghi đè."
-            rm -f "$TEMP_FILE"
-            exit 1
-        fi
-    else
+    
+    # Tải file mới vào file tạm
+    sudo wget --no-cache "https://go.bibica.net/docker-lcmp-multisite-wordPress-minimal?$(date +%s)" -O "$TEMP_FILE"
+    if [ $? -ne 0 ]; then
         echo "Lỗi: Không thể tải bản cập nhật. Vui lòng kiểm tra lại URL hoặc kết nối mạng."
-        rm -f "$TEMP_FILE"
+        rm -f "$TEMP_FILE" # Xóa file tạm nếu lỗi
+        exit 1
+    fi
+
+    # Xác minh file tạm tải thành công
+    if [ -s "$TEMP_FILE" ]; then
+        echo "Đã tải thành công bản cập nhật. Ghi đè file cũ..."
+        sudo mv "$TEMP_FILE" "$SCRIPT_PATH" # Ghi đè file cũ bằng file mới
+        sudo chmod +x "$SCRIPT_PATH"       # Đảm bảo quyền thực thi
+        echo "Cập nhật thành công. Chạy lại script mới..."
+        hash -r # Xóa bộ nhớ đệm shell
+        exec "$SCRIPT_PATH" "$@" # Thay thế bằng phiên bản mới của script
+    else
+        echo "Lỗi: File tải về rỗng. Không thực hiện cập nhật."
+        rm -f "$TEMP_FILE" # Xóa file tạm
         exit 1
     fi
 }
+
 
 	
 # Xác định thư mục chứa script
