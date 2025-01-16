@@ -275,9 +275,10 @@ update_script() {
                 if [ -f "$PROFILE_FILE" ]; then
                     sed -i '/^alias lcmp=/d' "$PROFILE_FILE"
                     echo "$ALIAS" >> "$PROFILE_FILE"
-                    
+                    hash -r
                     # Tải lại cấu hình shell
                     . "$PROFILE_FILE"
+		    hash -r
                 fi
                 
                 echo "Cập nhật thành công! Script đã được cập nhật lên phiên bản mới nhất."
