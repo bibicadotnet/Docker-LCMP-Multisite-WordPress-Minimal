@@ -83,3 +83,4 @@ backup.sh và restore.sh có thể sửa lại theo nhu cầu
 1. Bỏ đi tùy chọn `9. Xóa toàn bộ các container và tất cả mọi thứ liên quan` vì khá dễ ấn nhầm, xóa luôn sạch dữ liệu cũ
 2. Bổ xung tùy chọn `5. Cập nhập LCMP lên phiên bản mới` để sau này cập nhập tiện hơn
 3. Cập nhập sử dụng mặc định PHP v8.4 - Caddy v2.9.1 - Mariadb v10.11.10 khi tạo domain mới
+4. Sử dụng image: `bibica/wordpress-wp-cli-php8.4-fpm-alpine-minial` cho PHP (WordPress)
