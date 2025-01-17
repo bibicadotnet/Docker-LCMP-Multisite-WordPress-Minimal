@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define version variables
-DOCKER_SCRIPT_VERSION="v1.4"
+DOCKER_SCRIPT_VERSION="v1.3"
 PHP_VERSION="v8.4"
 CADDY_VERSION="v2.9.1"
 MARIADB_VERSION="v10.11.10"
