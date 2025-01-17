@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# Define version variables
+DOCKER_SCRIPT_VERSION="v1.4"
+PHP_VERSION="v8.4"
+CADDY_VERSION="v2.9.1"
+MARIADB_VERSION="v10.11.10"
+
 # Hàm cài đặt curl tùy thuộc vào hệ điều hành
 install_curl() {
     if command -v apt-get &> /dev/null; then
@@ -281,7 +287,7 @@ update_script() {
 		    hash -r
                 fi
                 
-                echo "Cập nhật thành công! Script đã được cập nhật lên phiên bản mới nhất."
+                echo "Cập nhật thành công! Script đã được cập nhật lên phiên bản $DOCKER_SCRIPT_VERSIONb."
                 echo "Vui lòng mở terminal mới và chạy lại lệnh 'lcmp' để sử dụng phiên bản mới."
                 exit 0
             else
@@ -356,7 +362,7 @@ services:
       - ./config/mariadb/mariadb-$DOMAIN.cnf:/etc/my.cnf.d/mariadb-$DOMAIN.cnf
 
   wordpress.$DOMAIN:
-    image: bibica/wordpress-wp-cli-php8.3-fpm-alpine
+    image: bibica/wordpress-wp-cli-php8.4-fpm-alpine
     #build: ./config/build/php
     container_name: wordpress.$DOMAIN
     restart: always
@@ -724,8 +730,8 @@ show_menu() {
     echo "5. Cập nhập LCMP lên phiên bản mới"	
     echo "0. Thoát"
     echo
-    echo -e "Docker LCMP Multisite WordPress Minimal \033[1;31mv1.3\033[0m"
-    echo -e "PHP \033[1;34mv8.3\033[0m - Caddy \033[1;32mv2.9.1\033[0m - Mariadb \033[1;33mv10.11.10\033[0m"
+	echo -e "Docker LCMP Multisite WordPress Minimal \033[1;31m$DOCKER_SCRIPT_VERSION\033[0m"
+	echo -e "PHP \033[1;34m$PHP_VERSION\033[0m - Caddy \033[1;32m$CADDY_VERSION\033[0m - Mariadb \033[1;33m$MARIADB_VERSION\033[0m"
 	echo
 }
 
