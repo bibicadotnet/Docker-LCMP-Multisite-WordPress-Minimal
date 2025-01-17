@@ -362,7 +362,7 @@ services:
       - ./config/mariadb/mariadb-$DOMAIN.cnf:/etc/my.cnf.d/mariadb-$DOMAIN.cnf
 
   wordpress.$DOMAIN:
-    image: bibica/wordpress-wp-cli-php8.4-fpm-alpine
+    image: bibica/wordpress-wp-cli-php8.4-fpm-alpine-minial
     #build: ./config/build/php
     container_name: wordpress.$DOMAIN
     restart: always
