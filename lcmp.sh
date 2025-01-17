@@ -896,7 +896,6 @@ manage_docker() {
     done
 }
 
-
 # Xử lý tùy chọn của người dùng
 while true; do
     show_menu
