@@ -287,7 +287,7 @@ update_script() {
 		    hash -r
                 fi
                 
-                echo "Cập nhật thành công! Script đã được cập nhật lên phiên bản $DOCKER_SCRIPT_VERSION"
+                echo "Cập nhật thành công! Script đã được cập nhật lên phiên bản mới nhất"
                 echo "Vui lòng mở terminal mới và chạy lại lệnh 'lcmp' để sử dụng phiên bản mới."
                 exit 0
             else
