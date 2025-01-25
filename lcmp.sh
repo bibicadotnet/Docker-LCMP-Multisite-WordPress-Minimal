@@ -3,8 +3,13 @@
 # Define version variables
 DOCKER_SCRIPT_VERSION="v1.3"
 PHP_VERSION="v8.4"
-CADDY_VERSION="v2.9.1"
 MARIADB_VERSION="v10.11.10"
+CADDY_VERSION="v2.9.1"
+
+# Image Variables
+PHP_IMAGE="bibica/wordpress-wp-cli-php8.4-fpm-alpine-minial"
+MARIADB_IMAGE="mariadb:10.11.10"
+CADDY_IMAGE="caddy:2.9.1-alpine"
 
 # Hàm cài đặt curl tùy thuộc vào hệ điều hành
 install_curl() {
@@ -166,7 +171,7 @@ EOL
         cat <<EOL > "$COMPOSE_YML"
 services:
   caddy:
-    image: caddy:2.9.1-alpine
+    image: $CADDY_IMAGE
     container_name: caddy
     restart: always
     networks:
@@ -351,7 +356,7 @@ create_domain() {
     cat <<EOL > "$DOMAIN_DIR"/compose.yml
 services:
   database.$DOMAIN:
-    image: mariadb:10.11.10
+    image: $MARIADB_IMAGE
     container_name: database.$DOMAIN
     restart: always
     env_file: ./config/$DOMAIN.env
@@ -362,7 +367,7 @@ services:
       - ./config/mariadb/mariadb-$DOMAIN.cnf:/etc/my.cnf.d/mariadb-$DOMAIN.cnf
 
   wordpress.$DOMAIN:
-    image: bibica/wordpress-wp-cli-php8.4-fpm-alpine-minial
+    image: $PHP_IMAGE
     #build: ./config/build/php
     container_name: wordpress.$DOMAIN
     restart: always
@@ -731,10 +736,11 @@ show_menu() {
     echo "0. Thoát"
     echo
 	echo -e "Docker LCMP Multisite WordPress Minimal \033[1;31m$DOCKER_SCRIPT_VERSION\033[0m"
-	echo -e "PHP \033[1;34m$PHP_VERSION\033[0m - Caddy \033[1;32m$CADDY_VERSION\033[0m - Mariadb \033[1;33m$MARIADB_VERSION\033[0m"
+	echo -e "PHP $PHP_VERSION: $PHP_IMAGE"
+	echo -e "Caddy $CADDY_VERSION: $CADDY_IMAGE"
+	echo -e "MariaDB $MARIADB_VERSION: $MARIADB_IMAGE"
 	echo
 }
-
 
 # Hiển thị danh sách container
 list_containers() {
