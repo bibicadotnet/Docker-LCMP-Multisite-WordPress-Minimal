@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define version variables
-DOCKER_SCRIPT_VERSION="v1.3"
+DOCKER_SCRIPT_VERSION="v1.3.1"
 PHP_VERSION="v8.4"
 MARIADB_VERSION="v10.11.10"
 CADDY_VERSION="v2.9.1"
@@ -364,7 +364,7 @@ services:
       - reverse_proxy
     volumes:
       - ./database:/var/lib/mysql
-      - ./config/mariadb/mariadb-$DOMAIN.cnf:/etc/my.cnf.d/mariadb-$DOMAIN.cnf
+      - ./config/mariadb/mariadb-$DOMAIN.cnf:/etc/mysql/mariadb.conf.d/mariadb-$DOMAIN.cnf
 
   wordpress.$DOMAIN:
     image: $PHP_IMAGE
@@ -379,7 +379,7 @@ services:
     volumes:
       - ./www:/var/www/html
       - ./config/php/php-ini-$DOMAIN.ini:/usr/local/etc/php/conf.d/php-ini-$DOMAIN.ini
-      - ./config/mariadb/mariadb-$DOMAIN.cnf:/usr/local/etc/php-fpm.d/mariadb-$DOMAIN.cnf
+      - ./config/php/zz-docker-$DOMAIN.conf:/usr/local/etc/php-fpm.d/zz-docker-$DOMAIN.conf
 
 networks:
   reverse_proxy:
