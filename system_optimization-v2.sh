@@ -127,11 +127,12 @@ create_restore_script() {
 #!/bin/bash
 echo "=== Khôi phục cấu hình hệ thống ==="
 
-# Dừng Docker trước nếu đang chạy
-if systemctl is-active --quiet docker; then
-    echo "Dừng Docker..."
-    systemctl stop docker
-fi
+# Xác định thư mục chứa script
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Dừng Docker nếu đang chạy
+echo "Dừng Docker và docker.socket..."
+systemctl stop docker.socket docker
 
 # Mở khóa /etc/resolv.conf nếu cần
 if lsattr /etc/resolv.conf 2>/dev/null | grep -q '\-i\-'; then
@@ -139,9 +140,9 @@ if lsattr /etc/resolv.conf 2>/dev/null | grep -q '\-i\-'; then
     echo "Đã mở khóa /etc/resolv.conf"
 fi
 
-# Khôi phục các file nếu có
+# Hàm khôi phục file
 restore_file() {
-    SRC="./$1"
+    SRC="$SCRIPT_DIR/$1"
     DEST="/etc/$1"
     if [ -f "$SRC" ]; then
         cp "$SRC" "$DEST"
@@ -156,9 +157,33 @@ restore_file "sysctl.conf"
 restore_file "fstab"
 restore_file "resolv.conf"
 
-# Khôi phục daemon.json hoặc tạo mặc định
-if [ -f ./daemon.json ]; then
-    cp ./daemon.json /etc/docker/daemon.json
+# Kiểm tra và thêm hostname vào file /etc/hosts
+hostname=$(hostname)
+localhost_ip="127.0.0.1"
+hosts_file="/etc/hosts"
+if grep -q "$hostname" "$hosts_file"; then
+    echo "Hostname $hostname đã có trong $hosts_file."
+else
+    echo "Thêm hostname $hostname vào $hosts_file."
+    # Thêm hostname vào file /etc/hosts
+    echo "$localhost_ip $hostname" | sudo tee -a "$hosts_file" > /dev/null
+    echo "Đã thêm $hostname vào $hosts_file."
+fi
+
+echo "Reload cấu hình kernel sysctl..."
+sysctl --system
+
+echo "Mount lại các mount points (nếu có thay đổi)..."
+mount -a
+
+echo "Khởi động lại dịch vụ DNS systemd-resolved nếu có..."
+if systemctl is-active --quiet systemd-resolved; then
+    systemctl restart systemd-resolved
+fi
+
+# Khôi phục daemon.json
+if [ -f "$SCRIPT_DIR/daemon.json" ]; then
+    cp "$SCRIPT_DIR/daemon.json" /etc/docker/daemon.json
     echo "Khôi phục /etc/docker/daemon.json"
 else
     echo '{
@@ -171,13 +196,13 @@ else
     echo "Tạo /etc/docker/daemon.json mặc định"
 fi
 
-# Kiểm tra cấu hình daemon.json
+# Kiểm tra cú pháp daemon.json
 if ! jq . /etc/docker/daemon.json >/dev/null 2>&1; then
     echo "⚠️  Lỗi cú pháp trong daemon.json. KHÔNG khởi động Docker."
     exit 1
 fi
 
-# Bắt đầu lại Docker
+# Khởi động Docker
 echo "Khởi động lại Docker..."
 systemctl start docker
 
@@ -214,6 +239,12 @@ else
     echo "Đã thêm $hostname vào $hosts_file."
 fi
 
+# Cấu hình DNS Server (khóa cứng resolv.conf để tránh bị sửa lại )
+systemctl disable --now systemd-resolved
+rm -f /etc/resolv.conf
+echo -e "nameserver 8.8.8.8\nnameserver 1.1.1.1" > /etc/resolv.conf
+chattr +i /etc/resolv.conf
+
 # Update và nâng cấp hệ thống
 apt-get update -y
 DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
@@ -244,12 +275,6 @@ timedatectl set-timezone Asia/Ho_Chi_Minh
 apt-get install -y chrony
 systemctl start chrony
 systemctl enable chrony
-  
-# Cấu hình DNS Server (khóa cứng resolv.conf để tránh bị sửa lại )
-systemctl disable --now systemd-resolved
-rm -f /etc/resolv.conf
-echo -e "nameserver 8.8.8.8\nnameserver 1.1.1.1" > /etc/resolv.conf
-chattr +i /etc/resolv.conf
 
 # Tối ưu hóa TCP BBR
 remove_sysctl_lines /etc/sysctl.conf "net.core.default_qdisc" "net.ipv4.tcp_congestion_control"
