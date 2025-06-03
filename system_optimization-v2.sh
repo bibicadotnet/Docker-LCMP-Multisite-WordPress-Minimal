@@ -85,7 +85,7 @@ show_info() {
     echo
     echo "[Phần mềm đã cài đặt]"
     installed_apps=()
-    for app in curl wget git htop unzip nano zip zstd jq docker
+    for app in curl wget git htop unzip nano zip zstd jq docker sudo
     do
         if command -v $app >/dev/null; then
             installed_apps+=("$app")
@@ -166,7 +166,7 @@ if grep -q "$hostname" "$hosts_file"; then
 else
     echo "Thêm hostname $hostname vào $hosts_file."
     # Thêm hostname vào file /etc/hosts
-    echo "$localhost_ip $hostname" | sudo tee -a "$hosts_file" > /dev/null
+    echo "$localhost_ip $hostname" | tee -a "$hosts_file" > /dev/null
     echo "Đã thêm $hostname vào $hosts_file."
 fi
 
@@ -235,12 +235,17 @@ if grep -q "$hostname" "$hosts_file"; then
 else
     echo "Thêm hostname $hostname vào $hosts_file."
     # Thêm hostname vào file /etc/hosts
-    echo "$localhost_ip $hostname" | sudo tee -a "$hosts_file" > /dev/null
+    echo "$localhost_ip $hostname" | tee -a "$hosts_file" > /dev/null
     echo "Đã thêm $hostname vào $hosts_file."
 fi
 
 # Cấu hình DNS Server (khóa cứng resolv.conf để tránh bị sửa lại )
-systemctl disable --now systemd-resolved
+systemctl disable --now systemd-resolved 2>/dev/null || true
+# Mở khóa /etc/resolv.conf nếu cần
+if lsattr /etc/resolv.conf 2>/dev/null | grep -q '\-i\-'; then
+    chattr -i /etc/resolv.conf
+    echo "Đã mở khóa /etc/resolv.conf"
+fi
 rm -f /etc/resolv.conf
 echo -e "nameserver 8.8.8.8\nnameserver 1.1.1.1" > /etc/resolv.conf
 chattr +i /etc/resolv.conf
@@ -251,6 +256,9 @@ DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
 DEBIAN_FRONTEND=noninteractive apt-get dist-upgrade -y
 apt-get autoremove -y
 apt-get clean
+
+# Cài đặt các công cụ cơ bản
+apt install -y curl wget git htop unzip nano zip zstd jq sudo
 
 # Tắt firewall nếu đã cài đặt (phần này dành cho Oracle Ubuntu 22.04)
 apt remove iptables-persistent -y
@@ -301,7 +309,7 @@ update_sysctl() {
     # Xóa các dòng cũ
     remove_sysctl_lines /etc/sysctl.conf "^vm\.swappiness" "^vm\.dirty_ratio" "^vm\.dirty_background_ratio" "^vm\.dirty_expire_centisecs" "^vm\.dirty_writeback_centisecs" "^vm\.vfs_cache_pressure" "^fs\.file-max"
 
-    cat <<EOF | sudo tee -a /etc/sysctl.conf > /dev/null
+    cat <<EOF | tee -a /etc/sysctl.conf > /dev/null
 vm.swappiness=10
 vm.dirty_ratio=$dirty_ratio
 vm.dirty_background_ratio=$dirty_bg_ratio
@@ -311,7 +319,7 @@ vm.vfs_cache_pressure=$vfs_pressure
 fs.file-max=$file_max
 EOF
 
-    sudo sysctl -p
+    sysctl -p
 }
 
 # Hàm để tạo swapfile
@@ -323,13 +331,13 @@ create_swapfile() {
     fi
 
     echo "Tạo swapfile $swap_size GB..."
-    sudo fallocate -l ${swap_size}G /swapfile
-    sudo chmod 600 /swapfile
-    sudo mkswap /swapfile
-    sudo swapon /swapfile
+    fallocate -l ${swap_size}G /swapfile
+    chmod 600 /swapfile
+    mkswap /swapfile
+    swapon /swapfile
 
     if ! grep -q '/swapfile' /etc/fstab; then
-        echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab > /dev/null
+        echo '/swapfile none swap sw 0 0' | tee -a /etc/fstab > /dev/null
     fi
 }
 
@@ -367,8 +375,6 @@ update_sysctl $ram_size
 create_swapfile $swap_size
 ######################################################
 
-# Cài đặt các công cụ cơ bản
-apt install -y curl wget git htop unzip nano zip zstd jq
 
 # Cài đặt Docker
 if ! command -v docker &>/dev/null; then
@@ -414,7 +420,7 @@ echo "######################################################"
 echo "# KHUYẾN NGHỊ: KHỞI ĐỘNG LẠI HỆ THỐNG"
 echo "# Để áp dụng tất cả thay đổi, vui lòng chạy lệnh:"
 echo "#"
-echo "#         sudo reboot now"
+echo "#         reboot now"
 echo "#"
 echo "######################################################"
 echo
