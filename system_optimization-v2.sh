@@ -42,8 +42,9 @@ show_info() {
     done
 
     # Cấu hình Docker
+	DOCKER_VERSION=$(docker --version | cut -d ' ' -f 3 | tr -d ',')
     echo
-    echo "[Docker]"
+    echo "[Docker $DOCKER_VERSION]"
     if [ -f /etc/docker/daemon.json ]; then
         jq -r 'to_entries[] | 
           if (.value|type=="object") then 
