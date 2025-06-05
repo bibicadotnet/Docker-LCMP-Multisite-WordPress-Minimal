@@ -22,7 +22,7 @@ echo "Bạn đang chạy hệ điều hành Debian-based. Tiếp tục thực th
 echo
 
 # Danh sách các app cần cài
-apps=(curl wget git htop unzip nano zip zstd jq sudo python3 net-tools)
+apps=(curl wget git htop unzip nano zip zstd jq sudo python3 net-tools lsof iputils-ping)
 
 
 # Hàm hiển thị thông tin cấu hình
