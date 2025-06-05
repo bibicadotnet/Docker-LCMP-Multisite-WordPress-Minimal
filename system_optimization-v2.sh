@@ -1,4 +1,6 @@
 #!/bin/bash
+
+set -euo pipefail
 clear
 
 if [[ $EUID -ne 0 ]]; then
@@ -131,7 +133,7 @@ echo
 }
 
 # Kiểm tra tham số --info
-if [[ "$1" == "--info" ]]; then
+if [[ "${1:-}" == "--info" ]]; then
     show_info
     exit 0
 fi
@@ -286,13 +288,27 @@ rm -f /etc/resolv.conf
 echo -e "nameserver 8.8.8.8\nnameserver 1.1.1.1" > /etc/resolv.conf
 chattr +i /etc/resolv.conf
 
-# Update và nâng cấp hệ thống
+# Chỉ cập nhập OS Ubuntu
 apt-get update -y
-DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
-DEBIAN_FRONTEND=noninteractive apt-get dist-upgrade -y
-apt-get autoremove -y
-apt-get clean
 
+mapfile -t upgradable_packages < <(apt list --upgradable 2>/dev/null | tail -n +2)
+
+declare -a packages_to_upgrade=()
+
+for pkg_info in "${upgradable_packages[@]}"; do
+    pkg=$(echo "$pkg_info" | cut -d/ -f1)
+    repo=$(echo "$pkg_info" | cut -d/ -f2 | awk '{print $1}' | cut -d- -f1)
+    
+    if [[ "$repo" =~ ^(ubuntu|updates|security|backports)$ ]]; then
+        packages_to_upgrade+=("$pkg")
+    fi
+done
+
+if [ ${#packages_to_upgrade[@]} -gt 0 ]; then
+    apt-get install --no-install-recommends --only-upgrade -y "${packages_to_upgrade[@]}"
+fi
+
+echo "Hoàn tất quá trình cập nhật hệ điều hành!"
 
 # Cài đặt các app thiết yếu hay dùng
 sudo apt install -y "${apps[@]}"
