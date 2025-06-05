@@ -19,20 +19,30 @@ echo
 echo "Bạn đang chạy hệ điều hành Debian-based. Tiếp tục thực thi script..."
 echo
 
+# Danh sách các app cần cài
+apps=(curl wget git htop unzip nano zip zstd jq sudo python3 net-tools)
+
+
 # Hàm hiển thị thông tin cấu hình
 show_info() {
-    echo
-    echo "========================================"
-    echo "THÔNG TIN HỆ THỐNG"
-    echo "----------------------------------------"
-    echo "Hostname            : $(hostname)"
-    echo "Hệ điều hành        : $(lsb_release -d | cut -f2-)"
-    echo "Kernel              : $(uname -r)"
-    echo "CPU                 : $(lscpu | grep 'Model name' | awk -F ':' '{print $2}' | xargs)"
-    echo "Số core CPU         : $(nproc)"
-    echo "RAM                 : $(free -h | awk '/Mem:/ {print $2}')"
-    echo "Swap                : $(swapon --show | awk '/swapfile/ {print $3}' || echo 'Không có')"
-    echo "IP công cộng        : $(curl -s ifconfig.me || wget -qO- ifconfig.me)"
+	echo
+	echo "========================================"
+	echo "THÔNG TIN HỆ THỐNG"
+	echo "----------------------------------------"
+	echo "Hostname            : $(hostname)"
+	echo "Hệ điều hành        : $(lsb_release -d | cut -f2-)"
+	echo "Kernel              : $(uname -r)"
+	echo "CPU                 : $(lscpu | grep 'Model name' | awk -F ':' '{print $2}' | xargs)"
+	echo "Số core CPU         : $(nproc)"
+	echo "RAM                 : $(free -h | awk '/Mem:/ {print $2 " total, " $3 " used, " $7 " available"}')"
+	echo "Swap                : $(swapon --show | awk '/swap/ {print $3}' || echo 'Không có')"
+	echo "Ổ đĩa               : $(df -h / | awk 'NR==2 {print $2 " total, " $3 " used, " $4 " free"}')"
+	echo "IP công cộng        : $(curl -s ifconfig.me || wget -qO- ifconfig.me)"
+	echo "IP private          : $(hostname -I | awk '{print $1}')"
+	echo "Interface chính     : $(ip -o -4 route show to default | awk '{print $5}')"
+	echo "Load average        : $(uptime | awk -F'load average: ' '{print $2}')"
+	echo "Uptime              : $(uptime -p)"
+	echo "Thời gian hệ thống  : $(date +"%d/%m/%Y at %I:%M %p")"
 
     echo
     echo "========================================"
@@ -85,13 +95,21 @@ show_info() {
     echo "[Thời gian hệ thống]"
     timedatectl | grep "Time zone" | awk '{print $3}'
     echo
-    echo "[Chrony]"
-    if systemctl list-unit-files | grep -q chrony; then
-        echo "Trạng thái: $(systemctl is-active chrony)"
-        echo "Tự động chạy: $(systemctl is-enabled chrony)"
-    else
-        echo "Chrony chưa được cài đặt"
-    fi
+	
+	if command -v chronyc >/dev/null 2>&1; then
+		echo "[Chrony]"
+		status=$(chronyc tracking | awk -F': ' '/Leap status/ {print $2}')
+		server=$(chronyc sources -v | awk '$1 ~ /^\^\*/ {print $2}')
+		jitter_seconds=$(chronyc tracking | awk -F': ' '/Root dispersion/ {print $2}' | xargs)
+		jitter_ms=$(awk -v val="$jitter_seconds" 'BEGIN {printf "%.2f", val * 1000}')
+		
+		echo "Chrony trạng thái : $status"
+		[[ -n "$server" ]] && echo "Đồng bộ với       : $server"
+		[[ -n "$jitter_ms" ]] && echo "Sai số đồng bộ    : ±${jitter_ms} ms"
+	else
+		echo "[Chrony]"
+		echo "Chrony chưa được cài đặt"
+	fi
 
     # Swap
     echo
@@ -111,6 +129,7 @@ do
 done
 
 echo "${installed_apps[*]}"
+echo
 }
 
 # Kiểm tra tham số --info
@@ -276,14 +295,9 @@ DEBIAN_FRONTEND=noninteractive apt-get dist-upgrade -y
 apt-get autoremove -y
 apt-get clean
 
-# Danh sách các app cần cài
-apps=(curl wget git htop unzip nano zip zstd jq sudo python3 net-tools)
-sudo apt install -y "${apps[@]}"
 
-# Tắt firewall nếu đã cài đặt (phần này dành cho Oracle Ubuntu 22.04) tạm bỏ vì có thể gây lỗi nhiều cấu hình khác nhau
-#apt remove iptables-persistent -y
-#ufw disable
-#iptables -F
+# Cài đặt các app thiết yếu hay dùng
+sudo apt install -y "${apps[@]}"
 
 # Tắt IPv6
 remove_sysctl_lines /etc/sysctl.conf "net.ipv6.conf.all.disable_ipv6" "net.ipv6.conf.default.disable_ipv6" "net.ipv6.conf.lo.disable_ipv6" "# Disable IPv6"
@@ -295,6 +309,7 @@ net.ipv6.conf.default.disable_ipv6 = 1
 net.ipv6.conf.lo.disable_ipv6 = 1
 EOF
 sysctl -p
+
 
 # Cài đặt múi giờ Việt Nam
 timedatectl set-timezone Asia/Ho_Chi_Minh
@@ -426,7 +441,7 @@ systemctl restart docker
 
 show_info
 
-echo
+
 echo "========================================"
 echo "THÔNG TIN SAO LƯU"
 echo "----------------------------------------"
