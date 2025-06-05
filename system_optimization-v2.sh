@@ -99,12 +99,10 @@ show_info() {
 	if command -v chronyc >/dev/null 2>&1; then
 		echo "[Chrony]"
 		status=$(chronyc tracking | awk -F': ' '/Leap status/ {print $2}')
-		server=$(chronyc sources -v | awk '$1 ~ /^\^\*/ {print $2}')
 		jitter_seconds=$(chronyc tracking | awk -F': ' '/Root dispersion/ {print $2}' | xargs)
 		jitter_ms=$(awk -v val="$jitter_seconds" 'BEGIN {printf "%.2f", val * 1000}')
 		
 		echo "Chrony trạng thái : $status"
-		[[ -n "$server" ]] && echo "Đồng bộ với       : $server"
 		[[ -n "$jitter_ms" ]] && echo "Sai số đồng bộ    : ±${jitter_ms} ms"
 	else
 		echo "[Chrony]"
