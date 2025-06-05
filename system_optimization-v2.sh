@@ -1,9 +1,23 @@
 #!/bin/bash
+clear
 
 if [[ $EUID -ne 0 ]]; then
   echo "Bạn phải chạy script với quyền root hoặc sudo." >&2
   exit 1
 fi
+
+# Đọc thông tin từ /etc/os-release
+source /etc/os-release
+
+# Kiểm tra ID hoặc ID_LIKE có chứa "debian"
+if [[ "$ID" != debian && "$ID" != ubuntu && "$ID_LIKE" != *debian* && "$ID_LIKE" != *ubuntu* ]]; then
+  echo "Script này chỉ hỗ trợ chạy trên Ubuntu hoặc các bản phân phối dựa trên Debian." >&2
+  exit 1
+fi
+
+echo
+echo "Bạn đang chạy hệ điều hành Debian-based. Tiếp tục thực thi script..."
+echo
 
 # Hàm hiển thị thông tin cấu hình
 show_info() {
