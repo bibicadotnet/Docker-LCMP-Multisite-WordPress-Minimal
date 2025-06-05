@@ -21,9 +21,9 @@ apt-get autoremove -y
 apt-get clean
 
 # Tắt firewall nếu đã cài đặt (phần này dành cho Oracle Ubuntu 22.04)
-apt remove iptables-persistent -y
-ufw disable
-iptables -F
+# apt remove iptables-persistent -y
+# ufw disable
+# iptables -F
 
 # Tắt IPv6
 cat <<EOF | tee -a /etc/sysctl.conf
