@@ -28,15 +28,18 @@ show_info() {
     # Các giá trị sysctl
     echo "[sysctl.conf]"
     for key in \
-      vm.swappiness \
-      vm.dirty_ratio \
-      vm.dirty_background_ratio \
-      vm.dirty_expire_centisecs \
-      vm.dirty_writeback_centisecs \
-      vm.vfs_cache_pressure \
-      fs.file-max \
-      net.core.default_qdisc \
-      net.ipv4.tcp_congestion_control
+		vm.swappiness \
+		vm.dirty_ratio \
+		vm.dirty_background_ratio \
+		vm.dirty_expire_centisecs \
+		vm.dirty_writeback_centisecs \
+		vm.vfs_cache_pressure \
+		fs.file-max \
+		net.core.default_qdisc \
+		net.ipv4.tcp_congestion_control \
+		net.ipv6.conf.all.disable_ipv6 \
+		net.ipv6.conf.default.disable_ipv6 \
+		net.ipv6.conf.lo.disable_ipv6
     do
         grep "^$key" /etc/sysctl.conf || echo "$key: Không có trong cấu hình"
     done
@@ -263,10 +266,10 @@ apt-get clean
 apps=(curl wget git htop unzip nano zip zstd jq sudo python3 net-tools)
 sudo apt install -y "${apps[@]}"
 
-# Tắt firewall nếu đã cài đặt (phần này dành cho Oracle Ubuntu 22.04)
-apt remove iptables-persistent -y
-ufw disable
-iptables -F
+# Tắt firewall nếu đã cài đặt (phần này dành cho Oracle Ubuntu 22.04) tạm bỏ vì có thể gây lỗi nhiều cấu hình khác nhau
+#apt remove iptables-persistent -y
+#ufw disable
+#iptables -F
 
 # Tắt IPv6
 remove_sysctl_lines /etc/sysctl.conf "net.ipv6.conf.all.disable_ipv6" "net.ipv6.conf.default.disable_ipv6" "net.ipv6.conf.lo.disable_ipv6" "# Disable IPv6"
@@ -401,8 +404,7 @@ cat <<EOF > /etc/docker/daemon.json
   },
   "max-concurrent-downloads": 10,
   "max-concurrent-uploads": 10,
-  "dns": ["8.8.8.8", "1.1.1.1"],
-  "userland-proxy": false
+  "dns": ["8.8.8.8", "1.1.1.1"]
 }
 EOF
 systemctl restart docker
