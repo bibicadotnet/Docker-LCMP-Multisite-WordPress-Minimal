@@ -82,16 +82,18 @@ show_info() {
     swapon --show | grep swapfile | awk '{print "File: "$1", Kích thước: "$3}' || echo "Không có swapfile"
 
     # Phần mềm đã cài đặt
-    echo
-    echo "[Phần mềm đã cài đặt]"
-    installed_apps=()
-    for app in curl wget git htop unzip nano zip zstd jq docker sudo
-    do
-        if command -v $app >/dev/null; then
-            installed_apps+=("$app")
-        fi
-    done
-    echo "${installed_apps[*]}"
+echo
+echo "[Phần mềm đã cài đặt]"
+
+installed_apps=()
+for app in "${apps[@]}"
+do
+    if command -v "$app" >/dev/null 2>&1; then
+	installed_apps+=("$app")
+    fi
+done
+
+echo "${installed_apps[*]}"
 }
 
 # Kiểm tra tham số --info
@@ -257,8 +259,9 @@ DEBIAN_FRONTEND=noninteractive apt-get dist-upgrade -y
 apt-get autoremove -y
 apt-get clean
 
-# Cài đặt các công cụ cơ bản
-apt install -y curl wget git htop unzip nano zip zstd jq sudo
+# Danh sách các app cần cài
+apps=(curl wget git htop unzip nano zip zstd jq sudo python3 net-tools)
+sudo apt install -y "${apps[@]}"
 
 # Tắt firewall nếu đã cài đặt (phần này dành cho Oracle Ubuntu 22.04)
 apt remove iptables-persistent -y
