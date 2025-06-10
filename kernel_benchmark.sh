@@ -43,11 +43,11 @@ log_error() {
 if ! command -v iperf3 &> /dev/null; then
     echo -e "${RED}iperf3 chưa được cài đặt. Đang cài đặt...${NC}"
     if command -v apt &> /dev/null; then
-        apt update && apt install -y iperf3
+        DEBIAN_FRONTEND=noninteractive apt update -qq && DEBIAN_FRONTEND=noninteractive apt install -y -qq iperf3
     elif command -v yum &> /dev/null; then
-        yum install -y iperf3
+        yum install -y -q iperf3
     elif command -v dnf &> /dev/null; then
-        dnf install -y iperf3
+        dnf install -y -q iperf3
     else
         log_error "Không thể tự động cài đặt iperf3. Vui lòng cài đặt thủ công."
         exit 1
