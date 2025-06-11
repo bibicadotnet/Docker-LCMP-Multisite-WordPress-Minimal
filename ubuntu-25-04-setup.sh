@@ -14,8 +14,15 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 # Kiểm tra hệ thống Debian/Ubuntu
-if ! command -v dpkg >/dev/null 2>&1; then
-    echo "Script này chỉ hỗ trợ hệ thống Debian/Ubuntu!" >&2
+[ -f /etc/os-release ] && . /etc/os-release && v=${VERSION_ID%%.*} || {
+    echo "ERROR: Không xác định được hệ điều hành." >&2; exit 1; }
+
+if { [ "$ID" = ubuntu ] && [ "$v" -lt 18 ]; } || \
+   { [ "$ID" = debian ] && [ "$v" -lt 10 ]; }; then
+    echo "ERROR: $ID $VERSION_ID không được hỗ trợ. Yêu cầu Ubuntu >= 18.04 hoặc Debian >= 10" >&2
+    exit 1
+elif [ "$ID" != ubuntu ] && [ "$ID" != debian ]; then
+    echo "ERROR: Hệ điều hành $ID không được hỗ trợ. Chỉ hỗ trợ Debian/Ubuntu" >&2
     exit 1
 fi
 
@@ -232,14 +239,16 @@ sysctl -p /etc/sysctl.d/99-memory-config.conf
 # CẤU HÌNH SSH
 # ========================================
 
-# Tăng thời gian kết nối SSH (2 giờ)
+# Tăng thời gian kết nối SSH (6 giờ)
 SSH_CONFIG="/etc/ssh/sshd_config"
-if grep -q "^ClientAliveInterval" "$SSH_CONFIG"; then
-    sed -i 's/^ClientAliveInterval.*/ClientAliveInterval 7200/' "$SSH_CONFIG"
-else
-    echo "ClientAliveInterval 7200" >> "$SSH_CONFIG"
-fi
 
+# Xóa dòng cũ (kể cả bị comment), sau đó thêm đúng cấu hình
+sed -i '/^\s*#\?\s*ClientAliveInterval/d' "$SSH_CONFIG"
+sed -i '/^\s*#\?\s*ClientAliveCountMax/d' "$SSH_CONFIG"
+echo "ClientAliveInterval 7200" >> "$SSH_CONFIG"
+echo "ClientAliveCountMax 3" >> "$SSH_CONFIG"
+
+# Khởi động lại SSH để áp dụng
 systemctl restart sshd
 
 # ========================================
