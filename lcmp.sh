@@ -1,106 +1,155 @@
 #!/bin/bash
 
-# Define version variables
-DOCKER_SCRIPT_VERSION="v1.3.1"
+# Định nghĩa các biến phiên bản.
+DOCKER_SCRIPT_VERSION="v1.3.2"
 PHP_VERSION="v8.4"
 MARIADB_VERSION="v10.11.10"
-CADDY_VERSION="v2.9.1"
+CADDY_VERSION="v2.10.0"
 
-# Image Variables
-PHP_IMAGE="bibica/wordpress-wp-cli-php8.4-fpm-alpine-minial"
+# Các biến hình ảnh Docker.
+PHP_IMAGE="bibica/wordpress-wp-cli-php8.4-fpm-alpine"
 MARIADB_IMAGE="mariadb:10.11.10"
-CADDY_IMAGE="caddy:2.9.1-alpine"
+CADDY_IMAGE="caddy:2.10.0-alpine"
 
-# Hàm cài đặt curl tùy thuộc vào hệ điều hành
+# URL tới phiên bản script mới nhất trên GitHub.
+GITHUB_RAW_URL="https://raw.githubusercontent.com/bibicadotnet/Docker-LCMP-Multisite-WordPress-Minimal/main/lcmp.sh"
+
+# Hàm cài đặt curl tùy thuộc vào hệ điều hành.
 install_curl() {
     if command -v apt-get &> /dev/null; then
-        # Hệ điều hành dựa trên Debian/Ubuntu
+        # Hệ điều hành dựa trên Debian/Ubuntu.
         sudo apt-get update
         sudo apt-get install -y curl
     elif command -v yum &> /dev/null; then
-        # Hệ điều hành dựa trên CentOS/Red Hat
+        # Hệ điều hành dựa trên CentOS/Red Hat.
         sudo yum install -y curl
     elif command -v dnf &> /dev/null; then
-        # Hệ điều hành dựa trên Fedora
+        # Hệ điều hành dựa trên Fedora.
         sudo dnf install -y curl
     elif command -v zypper &> /dev/null; then
-        # Hệ điều hành dựa trên openSUSE
+        # Hệ điều hành dựa trên openSUSE.
         sudo zypper install -y curl
     elif command -v pacman &> /dev/null; then
-        # Hệ điều hành dựa trên Arch Linux
+        # Hệ điều hành dựa trên Arch Linux.
         sudo pacman -Syu --noconfirm curl
     elif command -v apk &> /dev/null; then
-        # Hệ điều hành dựa trên Alpine Linux
+        # Hệ điều hành dựa trên Alpine Linux.
         apk add --no-cache curl
     else
-        echo "Không thể xác định hệ điều hành. Vui lòng cài đặt curl bằng tay."
-        exit 1
+        echo "Không thể xác định hệ điều hành. Vui lòng cài đặt curl bằng tay hoặc liên hệ hỗ trợ."
+        return 1 # Trả về lỗi thay vì thoát script.
     fi
 }
 
-# Hàm cài đặt Docker tùy thuộc vào hệ điều hành
+# Hàm cài đặt Docker tùy thuộc vào hệ điều hành.
 install_docker() {
     if command -v apk &> /dev/null; then
-        # Hệ điều hành dựa trên Alpine Linux
+        # Hệ điều hành dựa trên Alpine Linux.
         apk add --no-cache docker
     else
-        # Các hệ điều hành khác
+        # Các hệ điều hành khác (sử dụng script cài đặt chính thức của Docker).
         curl -sSL https://get.docker.com | sh
     fi
 
-    # Thêm người dùng hiện tại vào nhóm docker
-    usermod -aG docker $(whoami)
+    # Thêm người dùng hiện tại vào nhóm 'docker' để có quyền chạy lệnh Docker mà không cần sudo.
+    sudo usermod -aG docker $(whoami)
 
-    # Khởi động dịch vụ Docker và thiết lập tự động khởi động
+    # Khởi động dịch vụ Docker và thiết lập tự động khởi động cùng hệ thống.
     if command -v systemctl &> /dev/null; then
-        systemctl start docker
-        systemctl enable docker
+        sudo systemctl start docker
+        sudo systemctl enable docker
     elif command -v service &> /dev/null; then
-        service docker start
-        service docker enable
+        sudo service docker start
+        sudo service docker enable
     elif command -v rc-service &> /dev/null; then
-        # Alpine Linux sử dụng openrc
-        rc-service docker start
-        rc-update add docker
+        # Alpine Linux sử dụng openrc để quản lý dịch vụ.
+        sudo rc-service docker start
+        sudo rc-update add docker
     else
-        echo "Không thể xác định phương pháp khởi động dịch vụ."
-        exit 1
+        echo "Không thể xác định phương pháp khởi động dịch vụ Docker. Vui lòng khởi động thủ công hoặc liên hệ hỗ trợ."
+        return 1 # Trả về lỗi thay vì thoát script.
     fi
 }
 
-# Kiểm tra xem curl đã được cài đặt chưa
+# Hàm kiểm tra phiên bản mới nhất của script từ GitHub và thông báo cho người dùng.
+check_for_updates() {
+    # Tạo tệp tạm thời để tải xuống thông tin phiên bản.
+    TMP_FILE=$(mktemp 2>/dev/null)
+    if [ $? -ne 0 ] || [ -z "$TMP_FILE" ]; then
+        # Không hiển thị lỗi nếu không tạo được temp file, vì đây là kiểm tra nền.
+        return
+    fi
+    
+    # Tải xuống thông tin phiên bản từ GitHub với các tùy chọn không cache.
+    if curl -H "Cache-Control: no-cache, no-store" -H "Pragma: no-cache" -s "$GITHUB_RAW_URL" > "$TMP_FILE" 2>/dev/null; then
+        if [ -s "$TMP_FILE" ]; then
+            # Trích xuất phiên bản mới nhất bằng grep -oP.
+            local LATEST_SCRIPT_VERSION=$(grep -oP 'DOCKER_SCRIPT_VERSION="v\d+\.\d+\.\d+"' "$TMP_FILE" | grep -oP 'v\d+\.\d+\.\d+')
+
+            if [ -n "$LATEST_SCRIPT_VERSION" ]; then
+                # Loại bỏ tiền tố 'v' để so sánh phiên bản số.
+                CURRENT_VERSION_NUM=$(echo "$DOCKER_SCRIPT_VERSION" | sed 's/^v//')
+                LATEST_VERSION_NUM=$(echo "$LATEST_SCRIPT_VERSION" | sed 's/^v//')
+
+                # So sánh phiên bản.
+                if printf '%s\n' "$LATEST_VERSION_NUM" "$CURRENT_VERSION_NUM" | sort -V -C; then
+                    # Script đã là phiên bản mới nhất, không cần thông báo.
+                    : # Do nothing
+                else
+                    # Có phiên bản mới hơn.
+                    echo -e "\n\033[1;33mPhiên bản mới của LCMP đã có sẵn!\033[0m"
+                    echo -e "Phiên bản hiện tại của bạn: \033[1;36m$DOCKER_SCRIPT_VERSION\033[0m"
+                    echo -e "Phiên bản mới nhất: \033[1;32m$LATEST_SCRIPT_VERSION\033[0m"
+                    echo -e "Vui lòng chọn \033[1;33m'5' (Cập nhật LCMP lên phiên bản mới nhất)\033[0m trong menu để cập nhật.\n"
+                fi
+            fi
+        fi
+        # Luôn xóa tệp tạm thời.
+        rm -f "$TMP_FILE"
+    fi
+}
+
+# Kiểm tra xem curl đã được cài đặt chưa. Nếu chưa, tiến hành cài đặt.
 if ! command -v curl &> /dev/null
 then
-    echo "curl chưa được cài đặt. Tiến hành cài đặt curl."
+    echo "Curl chưa được cài đặt. Tiến hành cài đặt Curl."
     install_curl
 fi
 
-# Kiểm tra xem Docker đã được cài đặt chưa
+# Kiểm tra xem Docker đã được cài đặt chưa. Nếu chưa, tiến hành cài đặt.
 if ! command -v docker &> /dev/null
 then
     echo "Docker chưa được cài đặt. Tiến hành cài đặt Docker."
     install_docker
 fi
 
+# Kiểm tra xem Docker Compose có sẵn không.
+if ! docker compose version &> /dev/null; then
+    echo "Cảnh báo: Plugin Docker Compose không có sẵn. Một số tính năng có thể không hoạt động đúng."
+    echo "Để biết thêm thông tin, vui lòng truy cập: https://docs.docker.com/compose/install/"
+fi
 
-# Đường dẫn của thư mục reverse_proxy và các tệp cấu hình
+# Thực hiện kiểm tra cập nhật script (thực hiện ngầm, không hiển thị lỗi).
+check_for_updates 2>/dev/null
+
+# Định nghĩa đường dẫn của thư mục 'reverse_proxy' và các tệp cấu hình liên quan.
 REVERSE_PROXY_DIR="$(dirname "$0")/reverse_proxy"
 CADDYFILE="$REVERSE_PROXY_DIR/Caddyfile"
 COMPOSE_YML="$REVERSE_PROXY_DIR/compose.yml"
 
-# Hàm kiểm tra và tạo cấu trúc thư mục và tệp cấu hình
+# Hàm kiểm tra và tạo cấu trúc thư mục cùng các tệp cấu hình cần thiết cho reverse proxy.
 check_and_create_reverse_proxy() {
     if [ ! -d "$REVERSE_PROXY_DIR" ]; then
-        echo "Thư mục reverse_proxy không tồn tại. Đang tạo thư mục và tệp cấu hình..."
+        echo "Thư mục 'reverse_proxy' không tồn tại. Đang tạo thư mục và các tệp cấu hình mặc định..."
 
-        # Tạo thư mục reverse_proxy và các tệp cấu hình
+        # Tạo thư mục 'reverse_proxy'.
         mkdir -p "$REVERSE_PROXY_DIR"
 
-        # Tạo tệp Caddyfile
+        # Tạo tệp Caddyfile với cấu hình mặc định.
         cat <<EOL > "$CADDYFILE"
-# Cấu hình bảo mật cho WordPress
+# Cấu hình bảo mật cho WordPress, áp dụng các biện pháp bảo vệ chung.
 (wordpress_security) {
-    # Chặn truy cập đến các tập tin và thư mục nhạy cảm
+    # Chặn truy cập đến các tệp và thư mục nhạy cảm, chuyển hướng về trang chủ.
     @disallowed {
         path /wp-config.php
         path /.user.ini
@@ -111,53 +160,56 @@ check_and_create_reverse_proxy() {
         path /wp-includes/*.php
         path /wp-content/uploads/*.php
     }
-    # Chuyển hướng các yêu cầu đến các tập tin và thư mục nhạy cảm về trang chủ
+    # Chuyển hướng các yêu cầu đến các tập tin và thư mục nhạy cảm về trang chủ.
     rewrite @disallowed /index.php
 
-    # Chặn truy cập đến các tập tin với đuôi mở rộng cụ thể
+    # Chặn truy cập đến các tệp với đuôi mở rộng cụ thể (ví dụ: các tệp nén, thực thi, cấu hình).
     @blocked_ext {
         path_regexp ext \.(7z|ai|asc|asp|aspx|ba|bak|bash|bat|bin|bz2|c|cco|cfg|cgi|class|com|conf|cpp|crt|cs|dat|db|dbf|deb|der|dll|dmg|dmp|dump|ear|eps|exe|git|gz|h|hg|hqx|img|ini|iso|jad|jar|jardiff|jnlp|jsp|kar|kml|kmz|log|m3u8|mdb|mml|msi|msm|msp|odp|ods|odt|old|orig|original|out|pdb|pem|php#|php_bak|php~|pkg|pl|pm|ppk|prc|ps|py|rar|rdf|rpm|run|save|sea|sh|sit|sql|srv|svn|swo|swp|sys|tar|taz|tcl|tgz|tk|tmp|tpl|tsl|tz|vb|yml|war|wsf|xspf|z)$
     }
-    # Chuyển hướng các yêu cầu đến các tập tin với đuôi mở rộng cụ thể về trang chủ
+    # Chuyển hướng các yêu cầu đến các tập tin với đuôi mở rộng cụ thể về trang chủ.
     rewrite @blocked_ext /index.php
 
-    # Chặn truy cập đến các thư mục hoặc tập tin đặc biệt
+    # Chặn truy cập đến các thư mục hoặc tệp đặc biệt thường chứa mã nguồn hoặc thông tin nhạy cảm.
     @blocked_paths {
         path /node_modules/*
         path /composer.json
         path /fixtures/*
         path /behat/*
     }
-    # Chuyển hướng các yêu cầu đến các thư mục hoặc tập tin đặc biệt về trang chủ
+    # Chuyển hướng các yêu cầu đến các thư mục hoặc tập tin đặc biệt về trang chủ.
     rewrite @blocked_paths /index.php
 
-    # Chặn truy cập đến các tập tin PHP backup và cấu hình
+    # Chặn truy cập đến các tệp PHP backup và cấu hình thường được tạo ra bởi trình soạn thảo.
     @blocked_php_backup {
         path /wp-content/uploads/*.php_bak
         path /wp-content/uploads/*.php~
     }
-    # Chuyển hướng các yêu cầu đến các tập tin PHP backup và cấu hình về trang chủ
+    # Chuyển hướng các yêu cầu đến các tập tin PHP backup và cấu hình về trang chủ.
     rewrite @blocked_php_backup /index.php
 }
 
+# Thiết lập tiêu đề cache cho các tệp tĩnh (CSS, JS, Fonts).
 (static_header) {
     @static {
         file
         path *.css *.js *.ico *.woff *.woff2
     }
     handle @static {
-        header Cache-Control "public, max-age=31536000"
+        header Cache-Control "public, max-age=31536000" # Cache 1 năm.
     }
 
+    # Thiết lập tiêu đề cache bất biến cho các tệp ảnh tĩnh.
     @static-img {
         file
         path *.gif *.jpg *.jpeg *.png *.svg *.webp *.avif
     }
     handle @static-img {
-        header Cache-Control "public, max-age=31536000, immutable"
+        header Cache-Control "public, max-age=31536000, immutable" # Cache 1 năm và đánh dấu không đổi.
     }
 }
 
+# Loại bỏ các tiêu đề HTTP không cần thiết để tăng cường bảo mật và ẩn thông tin máy chủ.
 (header_remove) {
     header -Link
     header -Server
@@ -167,7 +219,7 @@ check_and_create_reverse_proxy() {
 
 EOL
 
-        # Tạo tệp compose.yml
+        # Tạo tệp compose.yml để định nghĩa các dịch vụ Docker.
         cat <<EOL > "$COMPOSE_YML"
 services:
   caddy:
@@ -191,16 +243,12 @@ networks:
     name: reverse_proxy
 EOL
 
-        echo "Đã tạo thư mục reverse_proxy và các tệp cấu hình cần thiết."
+        echo "Đã tạo thư mục 'reverse_proxy' và các tệp cấu hình cần thiết."
     else
-        echo 
+        : # Thư mục 'reverse_proxy' đã tồn tại. Bỏ qua việc tạo lại và không in thông báo.
     fi
 }
-
-# Kiểm tra và tạo cấu trúc thư mục và tệp cấu hình nếu cần
 check_and_create_reverse_proxy
-
-
 
 # Xác định đường dẫn tuyệt đối của script
 SCRIPT_PATH=$(readlink -f "$0" 2>/dev/null)
@@ -208,10 +256,14 @@ if [ -z "$SCRIPT_PATH" ]; then
     SCRIPT_PATH=$(cd "$(dirname "$0")" && pwd)/$(basename "$0")
 fi
 
-# Đảm bảo rằng script có quyền thực thi
+# Đảm bảo rằng script có quyền thực thi.
 if [ ! -x "$SCRIPT_PATH" ]; then
-    echo "Lỗi: Script không có quyền thực thi."
-    exit 1
+    echo "Lỗi: Script không có quyền thực thi. Đang cố gắng cấp quyền..."
+    chmod +x "$SCRIPT_PATH" 2>/dev/null || {
+        echo "Lỗi: Không thể cấp quyền thực thi cho script. Vui lòng chạy lệnh sau: sudo chmod +x $SCRIPT_PATH"
+        exit 1 # Thoát script nếu không thể cấp quyền.
+    }
+    echo "Đã cấp quyền thực thi cho script."
 fi
 
 # Tạo alias cho script
@@ -257,64 +309,65 @@ else
     echo "$ALIAS" >> "$PROFILE_FILE"
     . "$PROFILE_FILE"
 fi
-
 update_script() {
     echo "Đang cập nhật script..."
     
-    # Tạo temporary file
-    TMP_FILE=$(mktemp)
+    # Tạo tệp tạm thời để tải xuống script mới.
+    # Sử dụng cách tạo file tạm an toàn và kiểm tra lỗi.
+    TMP_FILE=$(mktemp 2>/dev/null)
+    if [ $? -ne 0 ] || [ -z "$TMP_FILE" ]; then
+        echo "Lỗi: Không thể tạo tệp tạm thời. Vui lòng kiểm tra quyền ghi hoặc dung lượng đĩa."
+        return 1
+    fi
     
-    # Download script mới với các tùy chọn no-cache
-    if curl -H "Cache-Control: no-cache, no-store" -H "Pragma: no-cache" -s "https://raw.githubusercontent.com/bibicadotnet/Docker-LCMP-Multisite-WordPress-Minimal/main/lcmp.sh" > "$TMP_FILE"; then
+    # Tải xuống script mới với các tùy chọn không cache để đảm bảo lấy phiên bản mới nhất.
+    if curl -H "Cache-Control: no-cache, no-store" -H "Pragma: no-cache" -s "$GITHUB_RAW_URL" > "$TMP_FILE"; then
         if [ -s "$TMP_FILE" ]; then
             # So sánh nội dung mới và cũ
             if diff "$TMP_FILE" "$SCRIPT_PATH" >/dev/null; then
                 echo "Không có cập nhật mới."
                 rm -f "$TMP_FILE"
-                exit 0
+                return 0 # Quay lại menu chính nếu không có cập nhật mới.
             fi
             
-            # Sao chép quyền từ script cũ
+            # Sao chép quyền thực thi từ script cũ sang tệp mới.
             chmod --reference="$SCRIPT_PATH" "$TMP_FILE"
             
-            # Di chuyển file mới vào vị trí của script cũ
+            # Di chuyển tệp mới vào vị trí của script cũ.
             if mv "$TMP_FILE" "$SCRIPT_PATH"; then
-                # Cập nhật lại alias
+                # Cập nhật lại alias trong file cấu hình shell để đảm bảo đường dẫn mới nhất.
                 ALIAS="alias lcmp='$SCRIPT_PATH'"
                 
-                # Xóa alias cũ và thêm alias mới
+                # Xóa alias cũ và thêm alias mới.
                 if [ -f "$PROFILE_FILE" ]; then
                     sed -i '/^alias lcmp=/d' "$PROFILE_FILE"
                     echo "$ALIAS" >> "$PROFILE_FILE"
-                    hash -r
-                    # Tải lại cấu hình shell
+                    hash -r # Làm mới bộ nhớ cache của shell cho alias.
+                    # Tải lại cấu hình shell để alias mới có hiệu lực ngay lập tức.
                     . "$PROFILE_FILE"
-		    hash -r
+		    hash -r # Làm mới bộ nhớ cache một lần nữa.
                 fi
                 
-                echo "Cập nhật thành công! Script đã được cập nhật lên phiên bản mới nhất"
-                echo "Vui lòng mở terminal mới và chạy lại lệnh 'lcmp' để sử dụng phiên bản mới."
-                exit 0
+                echo "Cập nhật thành công! Script đã được cập nhật lên phiên bản mới nhất."
+                # Tự động khởi động lại script để áp dụng phiên bản mới.
+                exec bash "$SCRIPT_PATH"
             else
-                echo "Lỗi: Không thể thay thế script cũ. Có thể bạn cần quyền sudo."
+                echo "Lỗi: Không thể thay thế script cũ. Có thể bạn cần quyền sudo để thực hiện thao tác này."
                 rm -f "$TMP_FILE"
-                exit 1
+                return 1 # Trả về lỗi nếu không thể thay thế script.
             fi
         else
             echo "Lỗi: File tải về trống."
             rm -f "$TMP_FILE"
-            exit 1
+            return 1
         fi
     else
         echo "Lỗi: Không thể tải script mới."
         rm -f "$TMP_FILE"
-        exit 1
+        return 1
     fi
 }
 
-
-
-	
 # Xác định thư mục chứa script
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -323,16 +376,16 @@ create_domain() {
     read -p "Bạn muốn dùng domain nào? " DOMAIN
     DOMAIN_DIR="$SCRIPT_DIR/$DOMAIN"
 
-    # Kiểm tra nếu domain không hợp lệ
-    if ! echo "$DOMAIN" | grep -E '^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$' > /dev/null; then
-        echo "Tên domain không hợp lệ. Vui lòng nhập domain theo định dạng đúng (ví dụ: example.com)."
-        exit 1
+    # Kiểm tra nếu domain không hợp lệ hoặc trống
+    if ! echo "$DOMAIN" | grep -E '^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$' > /dev/null || [ -z "$DOMAIN" ]; then
+        echo "Tên domain không hợp lệ hoặc để trống. Vui lòng nhập lại domain theo định dạng đúng (ví dụ: example.com)."
+        return 1 # Trở lại menu trước
     fi
 
-    # Kiểm tra nếu thư mục đã tồn tại
+    # Kiểm tra nếu thư mục cho domain đã tồn tại
     if [ -d "$DOMAIN_DIR" ]; then
         echo "Thư mục cho domain $DOMAIN đã tồn tại. Vui lòng chọn một domain khác."
-        exit 1
+        return 1 # Trở lại menu trước
     fi
 
     # Tạo cấu trúc thư mục cho domain mới
@@ -430,7 +483,6 @@ MYSQL_PASSWORD=$PASSWORD
 MYSQL_ROOT_PASSWORD=$ROOT_PASSWORD
 ######################### MYSQL ##########################################
 EOL
-
 	cat <<EOL > "$DOMAIN_DIR"/config/php/php-ini-"$DOMAIN".ini
 ; Thời gian tối đa (tính bằng giây) để thực thi một tập lệnh PHP. Nếu quá thời gian này, tập lệnh sẽ bị dừng.
 max_execution_time=6000
@@ -662,58 +714,131 @@ EOL
 delete_domain() {
     read -p "Bạn muốn xóa domain nào? " DOMAIN
 
-    # Kiểm tra nếu người dùng không nhập gì
+    # Kiểm tra nếu người dùng không nhập gì hoặc domain không hợp lệ
     if [ -z "$DOMAIN" ]; then
         echo "Tên domain không được để trống. Vui lòng nhập lại."
-        exit 1
+        return 1 # Trở lại menu trước
     fi
 
     DOMAIN_DIR="$SCRIPT_DIR/$DOMAIN"
 
-    # Kiểm tra nếu thư mục không tồn tại
+    # Kiểm tra nếu thư mục của domain không tồn tại
     if [ ! -d "$DOMAIN_DIR" ]; then
         echo "Thư mục cho domain $DOMAIN không tồn tại. Vui lòng kiểm tra lại tên domain."
-        exit 1
+        return 1 # Trở lại menu trước
     fi
 
-    # Xóa cấu hình trong Caddyfile
+    # Xóa cấu hình domain trong Caddyfile của reverse proxy
     sed -i "/# Cấu hình cho website $DOMAIN/,/^import \/config\/$DOMAIN\/$DOMAIN.conf/d" "$SCRIPT_DIR"/reverse_proxy/Caddyfile
 
-    # Xóa cấu hình volumes trong reverse_proxy/compose.yml
+    # Xóa cấu hình volumes liên quan đến domain trong reverse_proxy/compose.yml
     sed -i "/volumes:/,/^$/ {
         /$DOMAIN\/www:\/srv\/$DOMAIN\/www/d;
         /$DOMAIN\/config\/ssl:\/data\/$DOMAIN\/ssl/d;
         /$DOMAIN\/config\/$DOMAIN.conf:\/config\/$DOMAIN\/$DOMAIN.conf/d;
     }" "$SCRIPT_DIR"/reverse_proxy/compose.yml
 	
-    # Xóa containers và volumes của domain
+    # Dừng và xóa containers, cũng như các volumes liên quan của domain
     docker compose -f "$DOMAIN_DIR"/compose.yml down --volumes
 	
-    # Xóa thư mục của domain
+    # Xóa thư mục gốc của domain
     rm -rf "$DOMAIN_DIR"
 	
-    # Xóa file cấu hình Caddy data và Caddy config còn sót lại
+    # Xóa các file cấu hình Caddy data và Caddy config còn sót lại cho domain đó
     rm -rf "$SCRIPT_DIR"/reverse_proxy/caddy_data/"$DOMAIN"
     rm -rf "$SCRIPT_DIR"/reverse_proxy/caddy_config/"$DOMAIN"
 
-    echo "Đã xóa domain $DOMAIN cùng với các thứ liên quan."
+    echo "Đã xóa domain $DOMAIN cùng với các tài nguyên liên quan."
 
-    # Khởi động lại reverse_proxy để áp dụng cấu hình mới
+    # Khởi động lại reverse proxy (Caddy) để áp dụng các thay đổi cấu hình
     docker compose -f "$SCRIPT_DIR"/reverse_proxy/compose.yml up -d
 
     echo "Đã khởi động lại Caddy để áp dụng cấu hình mới."
 }
 
+update_all_domain_images() {
+    echo "Đang cập nhật hình ảnh Docker cho Caddy, PHP và MariaDB..."
 
+    # 1. Cập nhật Caddy trong reverse_proxy/compose.yml
+    CADDY_COMPOSE_FILE="$SCRIPT_DIR/reverse_proxy/compose.yml"
+    if [ -f "$CADDY_COMPOSE_FILE" ]; then
+        echo "Cập nhật Caddy trong $CADDY_COMPOSE_FILE..."
+        # Read file line by line, replace the image line, and write to a temp file
+        TEMP_CADDY_COMPOSE_FILE=$(mktemp)
+        while IFS= read -r line || [[ -n "$line" ]]; do
+            if [[ "$line" =~ "    image: caddy:" ]]; then
+                echo "    image: $CADDY_IMAGE" >> "$TEMP_CADDY_COMPOSE_FILE"
+            else
+                echo "$line" >> "$TEMP_CADDY_COMPOSE_FILE"
+            fi
+        done < "$CADDY_COMPOSE_FILE"
+        mv "$TEMP_CADDY_COMPOSE_FILE" "$CADDY_COMPOSE_FILE"
+    else
+        echo "Lỗi: Không tìm thấy tệp $CADDY_COMPOSE_FILE"
+    fi
 
-# Hàm liệt kê các domain đã tạo
+    # 2. Cập nhật PHP và MariaDB cho từng domain
+    for dir in "$SCRIPT_DIR"/*; do
+        if [ -d "$dir" ]; then
+            # Kiểm tra xem thư mục có cấu trúc domain hợp lệ không
+            if [ -d "$dir/database" ] && [ -d "$dir/www" ] && [ -d "$dir/config/ssl" ]; then
+                DOMAIN=$(basename "$dir")
+                DOMAIN_COMPOSE_FILE="$dir/compose.yml"
+                if [ -f "$DOMAIN_COMPOSE_FILE" ]; then
+                    echo "Cập nhật PHP và MariaDB trong $DOMAIN_COMPOSE_FILE (domain: $DOMAIN)..."
+                    TEMP_DOMAIN_COMPOSE_FILE=$(mktemp)
+                    while IFS= read -r line || [[ -n "$line" ]]; do
+                        if [[ "$line" =~ "    image: mariadb:" ]]; then
+                            echo "    image: $MARIADB_IMAGE" >> "$TEMP_DOMAIN_COMPOSE_FILE"
+                        elif [[ "$line" =~ "    image: bibica/wordpress-wp-cli-php" ]]; then
+                            echo "    image: $PHP_IMAGE" >> "$TEMP_DOMAIN_COMPOSE_FILE"
+                        else
+                            echo "$line" >> "$TEMP_DOMAIN_COMPOSE_FILE"
+                        fi
+                    done < "$DOMAIN_COMPOSE_FILE"
+                    mv "$TEMP_DOMAIN_COMPOSE_FILE" "$DOMAIN_COMPOSE_FILE"
+                else
+                    echo "Không tìm thấy compose.yml cho domain $DOMAIN. Bỏ qua cập nhật cho domain này."
+                fi
+            fi
+        fi
+    done
+
+    echo "Đã cập nhật các tệp compose.yml. Đang khởi động lại các container..."
+    # Execute Docker pull and up for reverse_proxy
+    docker compose -f "$SCRIPT_DIR"/reverse_proxy/compose.yml pull
+    docker compose -f "$SCRIPT_DIR"/reverse_proxy/compose.yml up -d
+    echo "Đã cập nhật và khởi động lại Caddy (Reverse Proxy)."
+
+    # Execute Docker pull and up for each domain
+    for domain_dir in "$SCRIPT_DIR"/*/; do
+        if [ -d "$domain_dir" ]; then
+            # Kiểm tra xem thư mục có cấu trúc domain hợp lệ không
+            if [ -d "$domain_dir/database" ] && [ -d "$domain_dir/www" ] && [ -d "$domain_dir/config/ssl" ]; then
+                DOMAIN=$(basename "$domain_dir")
+                COMPOSE_FILE="$domain_dir/compose.yml"
+                if [ -f "$COMPOSE_FILE" ]; then
+                    echo "Đang cập nhật images cho domain $DOMAIN..."
+                    docker compose -f "$COMPOSE_FILE" pull
+                    docker compose -f "$COMPOSE_FILE" up -d
+                    echo "Đã cập nhật images và khởi động lại container cho domain $DOMAIN thành công."
+                else
+                    echo "Không tìm thấy compose.yml cho domain $DOMAIN. Bỏ qua cập nhật cho domain này."
+                fi
+            fi
+        fi
+    done
+    echo "Hoàn tất cập nhật hình ảnh Docker cho tất cả domain."
+}
+
+# Hàm liệt kê các domain đã tạo.
 list_domains() {
     echo "Danh sách các domain đã tạo:"
 	echo
     for dir in "$SCRIPT_DIR"/*; do
         if [ -d "$dir" ]; then
             domain=$(basename "$dir")
-            # Kiểm tra xem thư mục có các thư mục con và tệp cấu hình cần thiết không
+            # Kiểm tra xem thư mục có cấu trúc domain hợp lệ không (chứa các thư mục con và tệp cấu hình cần thiết).
             if [ -d "$dir/database" ] && [ -d "$dir/www" ] && [ -d "$dir/config/ssl" ]; then
                 
 				echo "$domain"
@@ -723,8 +848,7 @@ list_domains() {
     done
 }
 
-
-# Hiển thị menu chính
+# Hiển thị menu chính của script LCMP.
 show_menu() {
 	echo
     echo "Chọn hành động:"
@@ -732,8 +856,8 @@ show_menu() {
     echo "2. Xóa domain"
     echo "3. Liệt kê các domain đã tạo"
     echo "4. Quản lý Docker Container"
-    echo "5. Cập nhập LCMP lên phiên bản mới"	
-    echo "0. Thoát"
+    echo "5. Cập nhật LCMP lên phiên bản mới nhất"	
+    echo "0. Thoát khỏi chương trình"
     echo
 	echo -e "Docker LCMP Multisite WordPress Minimal \033[1;31m$DOCKER_SCRIPT_VERSION\033[0m"
 	echo -e "PHP $PHP_VERSION: $PHP_IMAGE"
@@ -742,15 +866,14 @@ show_menu() {
 	echo
 }
 
-# Hiển thị danh sách container
+# Hiển thị danh sách tất cả các Docker container hiện có (bao gồm cả đang chạy và đã dừng).
 list_containers() {
     echo
     echo "Danh sách các container hiện có:"
     docker ps -a --format "table {{.ID}}\t{{.Names}}\t{{.Status}}\t{{.Networks}}\t{{.Ports}}"
     echo
 }
-
-# Quản lý Docker Containers
+# Quản lý các hành động liên quan đến Docker Containers.
 manage_docker() {
     while true; do
         list_containers
@@ -763,7 +886,8 @@ manage_docker() {
         echo "5. Truy cập vào container, ưu tiên bằng bash -> sh"
         echo "6. Theo dõi cụ thể tình trạng container theo domain"
         echo "7. Khởi động lại tất cả các container"
-        echo "8. Cập nhật tất cả images container cho tất cả domain"
+        echo "8. Đồng bộ (pull) và khởi động lại images hiện tại cho tất cả domain"
+        echo "9. Cập nhật images PHP, MariaDB, Caddy theo phiên bản LCMP $DOCKER_SCRIPT_VERSION cho tất cả domain"
     #    echo "9. Xóa toàn bộ các container và tất cả mọi thứ liên quan"
         echo "0. Quay lại menu chính"
         echo
@@ -771,114 +895,153 @@ manage_docker() {
         
         case $docker_option in
             1)
-                echo "Đang khởi động lại Caddy - Reverse Proxy..."
+                echo "Đang khởi động lại Caddy (Reverse Proxy)..."
                 if docker compose -f "$SCRIPT_DIR"/reverse_proxy/compose.yml restart; then
-                    echo "Đã khởi động lại Caddy - Reverse Proxy."
+                    echo "Đã khởi động lại Caddy (Reverse Proxy) thành công."
                 else
-                    echo "Lỗi khi khởi động lại Caddy - Reverse Proxy."
+                    echo "Lỗi khi khởi động lại Caddy (Reverse Proxy). Vui lòng kiểm tra lại."
                 fi
                 ;;
             2)
-                read -p "Nhập tên domain của bạn: " DOMAIN
+                read -p "Nhập tên domain bạn muốn khởi động lại container: " DOMAIN
+                if [ -z "$DOMAIN" ]; then
+                    echo "Tên domain không được để trống. Vui lòng nhập lại."
+                    continue # Quay lại menu quản lý Docker
+                fi
+
                 DOMAIN_DIR="$SCRIPT_DIR/$DOMAIN"
 
                 if [ -f "$DOMAIN_DIR/compose.yml" ]; then
                     echo "Đã tìm thấy file compose.yml tại: $DOMAIN_DIR/compose.yml"
                     if docker compose -f "$DOMAIN_DIR/compose.yml" restart; then
-                        echo "Đã khởi động lại container $DOMAIN để áp dụng cấu hình mới."
+                        echo "Đã khởi động lại container cho domain $DOMAIN để áp dụng cấu hình mới."
                     else
-                        echo "Lỗi khi khởi động lại container $DOMAIN."
+                        echo "Lỗi khi khởi động lại container cho domain $DOMAIN. Vui lòng kiểm tra lại."
                     fi
                 else
-                    echo "Domain không tồn tại hoặc không hợp lệ."
-                    echo "Kiểm tra lại đường dẫn hoặc tên domain của bạn."
+                    echo "Domain không tồn tại hoặc không hợp lệ. Vui lòng kiểm tra lại tên domain."
                     echo "Đường dẫn kiểm tra: $DOMAIN_DIR/compose.yml"
                 fi
                 ;;
             3)
-                read -p "Nhập tên domain của bạn: " DOMAIN
+                read -p "Nhập tên domain bạn muốn đặt quyền: " DOMAIN
+                if [ -z "$DOMAIN" ]; then
+                    echo "Tên domain không được để trống. Vui lòng nhập lại."
+                    continue # Quay lại menu quản lý Docker
+                fi
+
                 DOMAIN_DIR="$SCRIPT_DIR/$DOMAIN"
                 WWW_DIR="$DOMAIN_DIR/www"
 
                 if [ -d "$WWW_DIR" ]; then
-                    echo "Đang thay đổi quyền truy cập cho thư mục: $WWW_DIR"
+                    echo "Đang thay đổi quyền sở hữu và quyền truy cập cho thư mục WordPress: $WWW_DIR"
                     
-                    # Thay đổi quyền sở hữu user thành 82
+                    # Thay đổi quyền sở hữu (user và group) thành 82 (thường là www-data trong Docker WordPress).
                     chown -R 82:82 "$WWW_DIR"
                     
-                    # Thay đổi quyền truy cập thư mục thành 755 và tập tin thành 644
+                    # Thay đổi quyền truy cập thư mục thành 755 và tệp tin thành 644 để đảm bảo an toàn và khả năng truy cập.
                     find "$WWW_DIR" -type d -exec chmod 755 {} \;
                     find "$WWW_DIR" -type f -exec chmod 644 {} \;
 
-                    echo "Đã thay đổi quyền truy cập thành 755 cho thư mục và 644 cho tập tin."
-                    echo "Đã thay đổi quyền user thành 82 cho thư mục $WWW_DIR"
+                    echo "Đã thay đổi quyền truy cập thư mục thành 755 và tệp tin thành 644."
+                    echo "Đã thay đổi quyền sở hữu (user và group) thành 82 cho thư mục $WWW_DIR."
                 else
-                    echo "Thư mục không tồn tại: $WWW_DIR"
+                    echo "Thư mục WordPress không tồn tại: $WWW_DIR. Vui lòng kiểm tra lại tên domain."
                 fi
                 ;;
             4)
-                echo "Đang xóa các container đã dừng, các mạng, các hình ảnh, các volume không còn được sử dụng bởi bất kỳ container nào."
+                echo "Đang tiến hành dọn dẹp Docker: xóa các container đã dừng, các mạng, các hình ảnh và các volume không còn được sử dụng..."
                 if docker system prune -a -f && docker volume prune -f && docker network prune -f; then
-                    echo "Đã làm sạch không gian lưu trữ của Docker."
+                    echo "Đã dọn dẹp không gian lưu trữ của Docker thành công."
                 else
-                    echo "Lỗi khi làm sạch không gian lưu trữ của Docker."
+                    echo "Lỗi khi dọn dẹp không gian lưu trữ của Docker. Vui lòng kiểm tra lại."
                 fi
                 ;;
             5)
-                read -p "Nhập tên hoặc ID của container: " container_id
+                read -p "Nhập tên hoặc ID của container bạn muốn truy cập: " container_id
+                if [ -z "$container_id" ]; then
+                    echo "Tên hoặc ID container không được để trống. Vui lòng nhập lại."
+                    continue # Quay lại menu quản lý Docker
+                fi
+
                 if docker inspect "$container_id" &> /dev/null; then
+                    echo "Đang cố gắng truy cập vào container $container_id..."
                     if docker exec -it "$container_id" /bin/bash 2>/dev/null || docker exec -it "$container_id" /bin/sh; then
-                        echo "Đã truy cập vào container."
+                        echo "Đã truy cập vào container thành công."
                     else
-                        echo "Lỗi khi truy cập vào container."
+                        echo "Lỗi khi truy cập vào container $container_id. Đảm bảo container đang chạy và có shell khả dụng."
                     fi
                 else
-                    echo "Container không tồn tại hoặc không hợp lệ."
+                    echo "Container $container_id không tồn tại hoặc không hợp lệ. Vui lòng kiểm tra lại tên hoặc ID container."
                 fi
                 ;;
             6)
-                read -p "Nhập tên domain của bạn: " DOMAIN
+                read -p "Nhập tên domain bạn muốn theo dõi tình trạng container: " DOMAIN
+                if [ -z "$DOMAIN" ]; then
+                    echo "Tên domain không được để trống. Vui lòng nhập lại."
+                    continue # Quay lại menu quản lý Docker
+                fi
+
                 DOMAIN_DIR="$SCRIPT_DIR/$DOMAIN"
 
                 if [ -f "$DOMAIN_DIR/compose.yml" ]; then
                     echo "Đã tìm thấy file compose.yml tại: $DOMAIN_DIR/compose.yml"
-                    cd "$DOMAIN_DIR" || exit
+                    cd "$DOMAIN_DIR" || {
+                        echo "Lỗi: Không thể chuyển đến thư mục $DOMAIN_DIR. Vui lòng kiểm tra quyền truy cập."
+                        continue # Quay lại menu quản lý Docker nếu không thể cd
+                    }
                     CONTAINERS=$(docker compose ps -q)
 
                     if [ -n "$CONTAINERS" ]; then
-                        echo "Danh sách container đang chạy:"
+                        echo "Danh sách container đang chạy và tình trạng tài nguyên:"
                         docker stats $CONTAINERS
                     else
-                        echo "Không có container nào đang chạy."
+                        echo "Không có container nào đang chạy cho domain $DOMAIN."
                     fi
                 else
-                    echo "File compose.yml không tồn tại trong thư mục: $DOMAIN_DIR"
+                    echo "File compose.yml không tồn tại trong thư mục $DOMAIN_DIR. Vui lòng kiểm tra lại tên domain."
                 fi
                 ;;
             7)
-                echo "Đang khởi động lại toàn bộ các container..."
+                echo "Đang khởi động lại toàn bộ các container đang chạy..."
                 if docker restart $(docker ps -q) 2>/dev/null; then
-                    echo "Đã khởi động lại toàn bộ các container."
+                    echo "Đã khởi động lại toàn bộ các container đang chạy thành công."
                 else
-                    echo "Lỗi khi khởi động lại các container."
+                    echo "Lỗi khi khởi động lại các container. Vui lòng kiểm tra lại."
                 fi
                 ;;
             8)
-                echo "Đang cập nhật tất cả images container cho tất cả domain..."
+                echo "Đang tiến hành cập nhật tất cả images container cho tất cả các domain..."
                 for domain_dir in "$SCRIPT_DIR"/*/; do
                     DOMAIN=$(basename "$domain_dir")
                     COMPOSE_FILE="$domain_dir/compose.yml"
                     if [ -f "$COMPOSE_FILE" ]; then
                         echo "Đang cập nhật images cho domain $DOMAIN..."
-                        # Cập nhật images mới
+                        # Kéo (pull) images mới nhất từ Docker Hub hoặc registry khác.
                         docker compose -f "$COMPOSE_FILE" pull
-                        # Sau khi kéo xong, khởi động lại các container để áp dụng image mới
+                        # Sau khi kéo xong, khởi động lại các container để áp dụng image mới.
                         docker compose -f "$COMPOSE_FILE" up -d
-                        echo "Đã cập nhật images và khởi động lại container cho domain $DOMAIN."
+                        echo "Đã cập nhật images và khởi động lại container cho domain $DOMAIN thành công."
                     else
-                        echo "Không tìm thấy compose.yml cho domain $DOMAIN."
+                        echo "Không tìm thấy compose.yml cho domain $DOMAIN. Bỏ qua cập nhật cho domain này."
                     fi
                 done
+                ;;
+            9)
+                echo "
+Bạn đang chuẩn bị cập nhật hình ảnh Docker cho các dịch vụ sau:
+  - PHP: $PHP_VERSION
+  - MariaDB: $MARIADB_VERSION
+  - Caddy: $CADDY_VERSION
+
+Quá trình này sẽ tải xuống hình ảnh mới nhất và khởi động lại các container tương ứng. Điều này có thể mất một chút thời gian.
+"
+                read -p "Bạn có chắc chắn muốn tiếp tục? (y/N): " confirm_update
+                if [[ "$confirm_update" =~ ^[Yy]$ ]]; then
+                    update_all_domain_images
+                else
+                    echo "Đã hủy cập nhật. Quay lại menu quản lý Docker."
+                fi
                 ;;
        #     9)
        #         echo "Đang xóa toàn bộ các Docker containers, images, volumes và networks..."
@@ -902,7 +1065,7 @@ manage_docker() {
     done
 }
 
-# Xử lý tùy chọn của người dùng
+# Xử lý tùy chọn của người dùng từ menu chính.
 while true; do
     show_menu
     read -p "Nhập tùy chọn của bạn: " option
@@ -913,6 +1076,6 @@ while true; do
         4) manage_docker ;;
 	5) update_script ;;
         0) exit 0 ;;
-        *) echo "Tùy chọn không hợp lệ. Vui lòng chọn lại." ;;
+        *) echo "Tùy chọn không hợp lệ. Vui lòng chọn lại từ 0 đến 5." ;;
     esac
 done
