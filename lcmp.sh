@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Định nghĩa các biến phiên bản.
+# Định nghĩa các phiên bản.
 DOCKER_SCRIPT_VERSION="v1.3.2"
 PHP_VERSION="v8.4"
 MARIADB_VERSION="v10.11.13"
