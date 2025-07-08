@@ -3,12 +3,12 @@
 # Định nghĩa các biến phiên bản.
 DOCKER_SCRIPT_VERSION="v1.3.2"
 PHP_VERSION="v8.4"
-MARIADB_VERSION="v10.11.10"
+MARIADB_VERSION="v10.11.13"
 CADDY_VERSION="v2.10.0"
 
 # Các biến hình ảnh Docker.
 PHP_IMAGE="bibica/wordpress-wp-cli-php8.4-fpm-alpine"
-MARIADB_IMAGE="mariadb:10.11.10"
+MARIADB_IMAGE="mariadb:10.11.13"
 CADDY_IMAGE="caddy:2.10.0-alpine"
 
 # URL tới phiên bản script mới nhất trên GitHub.
