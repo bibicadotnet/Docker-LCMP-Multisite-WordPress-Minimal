@@ -1,6 +1,6 @@
 # Docker LCMP Multisite WordPress Minimal ![Telemetry Badge](https://monitor.bibica.net/telemetry/clnzoxcy10001vy2ohi4obbi0/clzx3jnst01txia8em59ikb95.gif?url=https://github.com/bibicadotnet/Docker-LCMP-Multisite-WordPress-Minimal)
 
-* PHP v8.4 - Caddy v2.9.1 - Mariadb v10.11.10
+* PHP v8.4 - Caddy v2.10.0 - Mariadb v10.11.13
 
 ## Cấu trúc Thư mục
 Xuất phát ban đầu của Docker LCMP Multisite WordPress Minimal là 1 file lcmp.sh, giúp thêm và xóa các trang chạy WordPress qua Docker nhanh hơn, hoạt động xoay quanh 1 container Caddy duy nhất, vừa dùng làm Webserver cho mọi trang, vừa dùng làm Reverse Proxy cho các dịch vụ còn lại
