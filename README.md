@@ -53,8 +53,8 @@ Chọn hành động:
 2. Xóa domain
 3. Liệt kê các domain đã tạo
 4. Quản lý Docker Container
-5. Cập nhập LCMP lên phiên bản mới
-0. Thoát
+5. Cập nhật LCMP lên phiên bản mới nhất
+0. Thoát khỏi chương trình
 ```
 Quản lý Docker Container
 ```
@@ -66,7 +66,8 @@ Chọn hành động quản lý Docker:
 5. Truy cập vào container, ưu tiên bằng bash -> sh
 6. Theo dõi cụ thể tình trạng container theo domain
 7. Khởi động lại tất cả các container
-8. Cập nhật tất cả images container cho tất cả domain
+8. Đồng bộ (pull) và khởi động lại images hiện tại cho tất cả domain
+9. Cập nhật images PHP, MariaDB, Caddy theo phiên bản LCMP cho tất cả domain
 0. Quay lại menu chính
 ```
 ## Backup và Restore
@@ -86,3 +87,13 @@ backup.sh và restore.sh có thể sửa lại theo nhu cầu
 4. Sử dụng image: [bibica/wordpress-wp-cli-php8.4-fpm-alpine-minial](https://github.com/bibicadotnet/wordpress-wp-cli-php8.4-fpm-alpine-minial) cho PHP (WordPress)
 ## Update v1.3.1
 Sửa lại đường dẫn cấu hình volumes bị nhầm (không rõ nhầm từ lúc nào) 
+## Update v1.3.2
+- Docker LCMP Multisite WordPress Minimal v1.3.2
+- PHP v8.4: bibica/wordpress-wp-cli-php8.4-fpm-alpine
+- Caddy v2.10.0: caddy:2.10.0-alpine
+- MariaDB v10.11.13: mariadb:10.11.13
+
+1. Bổ xung tính năng tự kiểm tra phiên bản mới nhất của LCMP mỗi khi chạy script
+2. Bổ xung menu tùy chọn `9. Cập nhật images PHP, MariaDB, Caddy theo phiên bản LCMP cho tất cả domain`
+- Tác dụng của tùy chọn này là tự sửa lại toàn bộ Reverse Proxy và các domain WordPress tạo ra bởi LCMP dùng theo các bản đã định nghĩa, đỡ phải sửa thủ công lắt nhắt các domain
+Ví dụ bạn có domain đang chạy PHP 8.3, hay MariaDB 10.4 từ ngày xưa, giờ vào từng domain sửa thủ công lại thì phiền, có thể dùng tùy chọn 4-> 9 để tự cập nhập lại toàn bộ
