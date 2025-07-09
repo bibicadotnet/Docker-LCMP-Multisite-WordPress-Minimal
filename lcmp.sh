@@ -894,8 +894,8 @@ manage_docker() {
         echo "5. Truy cập vào container, ưu tiên bằng bash -> sh"
         echo "6. Theo dõi cụ thể tình trạng container theo domain"
         echo "7. Khởi động lại tất cả các container"
-        echo "8. Đồng bộ (pull) và khởi động lại images hiện tại cho tất cả domain"
-        echo "9. Cập nhật images PHP, MariaDB, Caddy theo phiên bản LCMP $DOCKER_SCRIPT_VERSION cho tất cả domain"
+        echo "8. Cập nhật toàn bộ các images đã cài đặt (pull mới nhất)"
+        echo "9. Nâng cấp PHP, MariaDB, Caddy theo cấu hình LCMP"
     #    echo "9. Xóa toàn bộ các container và tất cả mọi thứ liên quan"
         echo "0. Quay lại menu chính"
         echo
