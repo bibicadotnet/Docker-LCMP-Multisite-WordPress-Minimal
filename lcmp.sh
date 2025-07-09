@@ -81,7 +81,7 @@ check_for_updates() {
     fi
     
     # Tải xuống thông tin phiên bản từ GitHub với các tùy chọn không cache.
-    if curl -H "Cache-Control: no-cache, no-store" -H "Pragma: no-cache" -s "$GITHUB_RAW_URL" > "$TMP_FILE" 2>/dev/null; then
+    if curl -H "Cache-Control: no-cache, no-store" -H "Pragma: no-cache" -s "${GITHUB_RAW_URL}?t=$(date +%s)" > "$TMP_FILE" 2>/dev/null; then
         if [ -s "$TMP_FILE" ]; then
             # Trích xuất phiên bản mới nhất bằng grep -oP.
             local LATEST_SCRIPT_VERSION=$(grep -oP 'DOCKER_SCRIPT_VERSION="v\d+\.\d+\.\d+"' "$TMP_FILE" | grep -oP 'v\d+\.\d+\.\d+')
@@ -321,7 +321,7 @@ update_script() {
     fi
     
     # Tải xuống script mới với các tùy chọn không cache để đảm bảo lấy phiên bản mới nhất.
-    if curl -H "Cache-Control: no-cache, no-store" -H "Pragma: no-cache" -s "$GITHUB_RAW_URL" > "$TMP_FILE"; then
+    if curl -H "Cache-Control: no-cache, no-store" -H "Pragma: no-cache" -s "${GITHUB_RAW_URL}?t=$(date +%s)" > "$TMP_FILE"; then
         if [ -s "$TMP_FILE" ]; then
             # So sánh nội dung mới và cũ
             if diff "$TMP_FILE" "$SCRIPT_PATH" >/dev/null; then
