@@ -7,7 +7,7 @@ MARIADB_VERSION="v10.11.13"
 CADDY_VERSION="v2.10.0"
 
 # Các biến hình ảnh Docker.
-PHP_IMAGE="bibica/wordpress-wp-cli-php8.4-fpm-alpine"
+PHP_IMAGE="bibica/wordpress-wp-cli-php8.4-fpm-alpine-minial"
 MARIADB_IMAGE="mariadb:10.11.13"
 CADDY_IMAGE="caddy:2.10.0-alpine"
 
@@ -763,16 +763,7 @@ update_all_domain_images() {
     CADDY_COMPOSE_FILE="$SCRIPT_DIR/reverse_proxy/compose.yml"
     if [ -f "$CADDY_COMPOSE_FILE" ]; then
         echo "Cập nhật Caddy trong $CADDY_COMPOSE_FILE..."
-        # Read file line by line, replace the image line, and write to a temp file
-        TEMP_CADDY_COMPOSE_FILE=$(mktemp)
-        while IFS= read -r line || [[ -n "$line" ]]; do
-            if [[ "$line" =~ "    image: caddy:" ]]; then
-                echo "    image: $CADDY_IMAGE" >> "$TEMP_CADDY_COMPOSE_FILE"
-            else
-                echo "$line" >> "$TEMP_CADDY_COMPOSE_FILE"
-            fi
-        done < "$CADDY_COMPOSE_FILE"
-        mv "$TEMP_CADDY_COMPOSE_FILE" "$CADDY_COMPOSE_FILE"
+        sed -i "/caddy:/,/image:/s@image: .*@image: $CADDY_IMAGE@" "$CADDY_COMPOSE_FILE"
     else
         echo "Lỗi: Không tìm thấy tệp $CADDY_COMPOSE_FILE"
     fi
@@ -786,17 +777,8 @@ update_all_domain_images() {
                 DOMAIN_COMPOSE_FILE="$dir/compose.yml"
                 if [ -f "$DOMAIN_COMPOSE_FILE" ]; then
                     echo "Cập nhật PHP và MariaDB trong $DOMAIN_COMPOSE_FILE (domain: $DOMAIN)..."
-                    TEMP_DOMAIN_COMPOSE_FILE=$(mktemp)
-                    while IFS= read -r line || [[ -n "$line" ]]; do
-                        if [[ "$line" =~ "    image: mariadb:" ]]; then
-                            echo "    image: $MARIADB_IMAGE" >> "$TEMP_DOMAIN_COMPOSE_FILE"
-                        elif [[ "$line" =~ "    image: bibica/wordpress-wp-cli-php" ]]; then
-                            echo "    image: $PHP_IMAGE" >> "$TEMP_DOMAIN_COMPOSE_FILE"
-                        else
-                            echo "$line" >> "$TEMP_DOMAIN_COMPOSE_FILE"
-                        fi
-                    done < "$DOMAIN_COMPOSE_FILE"
-                    mv "$TEMP_DOMAIN_COMPOSE_FILE" "$DOMAIN_COMPOSE_FILE"
+                    sed -i "/database.$DOMAIN:/,/image:/s@image: .*@image: $MARIADB_IMAGE@;\
+/wordpress.$DOMAIN:/,/image:/s@image: .*@image: $PHP_IMAGE@" "$DOMAIN_COMPOSE_FILE"
                 else
                     echo "Không tìm thấy compose.yml cho domain $DOMAIN. Bỏ qua cập nhật cho domain này."
                 fi
@@ -1029,12 +1011,14 @@ manage_docker() {
                 ;;
             9)
                 echo "
-Bạn đang chuẩn bị cập nhật hình ảnh Docker cho các dịch vụ sau:
-  - PHP: $PHP_VERSION
-  - MariaDB: $MARIADB_VERSION
-  - Caddy: $CADDY_VERSION
+Cập nhật images Docker cho toàn bộ các trang chạy WordPress tại thư mục $SCRIPT_DIR
+Phiên bản cụ thể như sau:
 
-Quá trình này sẽ tải xuống hình ảnh mới nhất và khởi động lại các container tương ứng. Điều này có thể mất một chút thời gian.
+  - PHP: $PHP_IMAGE
+  - MariaDB: $MARIADB_IMAGE
+  - Caddy: $CADDY_IMAGE
+
+Quá trình này sẽ cập nhập lại đường dẫn images, tải xuống images và khởi động lại các container tương ứng. Có thể mất một chút thời gian.
 "
                 read -p "Bạn có chắc chắn muốn tiếp tục? (y/N): " confirm_update
                 if [[ "$confirm_update" =~ ^[Yy]$ ]]; then
