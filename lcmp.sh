@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Định nghĩa các phiên bản.
-DOCKER_SCRIPT_VERSION="v1.3.2"
+DOCKER_SCRIPT_VERSION="v1.3.3"
 PHP_VERSION="v8.4"
 MARIADB_VERSION="v10.11.13"
 CADDY_VERSION="v2.10.0"
@@ -528,6 +528,35 @@ opcache.max_wasted_percentage=10
 
 EOL
 
+	# Get total system RAM in MB
+    TOTAL_SYSTEM_RAM_MB=$(grep MemTotal /proc/meminfo | awk '{print int($2 / 1024)}')
+    if [ -z "$TOTAL_SYSTEM_RAM_MB" ]; then
+        TOTAL_SYSTEM_RAM_MB=1024 # Fallback if /proc/meminfo not available
+    fi
+
+    # Determine PHP-FPM parameters based on RAM tiers
+    if [ "$TOTAL_SYSTEM_RAM_MB" -lt 2000 ]; then # Less than ~2GB RAM (e.g., 1GB)
+        MAX_CHILDREN=6
+        START_SERVERS=2
+        MIN_SPARE_SERVERS=2
+        MAX_SPARE_SERVERS=4
+    elif [ "$TOTAL_SYSTEM_RAM_MB" -lt 4000 ]; then # Less than ~4GB RAM (e.g., 2GB or 3GB)
+        MAX_CHILDREN=12
+        START_SERVERS=4
+        MIN_SPARE_SERVERS=4
+        MAX_SPARE_SERVERS=8
+    elif [ "$TOTAL_SYSTEM_RAM_MB" -lt 8000 ]; then # Less than ~8GB RAM (e.g., 4GB up to 8GB)
+        MAX_CHILDREN=24
+        START_SERVERS=8
+        MIN_SPARE_SERVERS=8
+        MAX_SPARE_SERVERS=16
+    else # > 8GB RAM or more
+        MAX_CHILDREN=50
+        START_SERVERS=20
+        MIN_SPARE_SERVERS=20
+        MAX_SPARE_SERVERS=40
+    fi
+
 	# Tạo nội dung cho cấu hình PHP zz-docker
 cat <<EOL > "$DOMAIN_DIR"/config/php/zz-docker-"$DOMAIN".conf
 [global]
@@ -545,20 +574,17 @@ listen = 9000
 pm = dynamic
 
 ; Số lượng quy trình tối đa mà PHP-FPM có thể sử dụng để xử lý yêu cầu.
-; Với giá trị này, PHP-FPM có thể khởi tạo tối đa 6 quy trình.
-pm.max_children = 6
+pm.max_children = $MAX_CHILDREN
 
 ; Số lượng quy trình khởi đầu khi PHP-FPM khởi động. 
 ; Ở đây, PHP-FPM sẽ bắt đầu với 2 quy trình.
-pm.start_servers = 2
+pm.start_servers = $START_SERVERS
 
 ; Số lượng quy trình rảnh rỗi tối thiểu mà PHP-FPM sẽ duy trì.
-; Giá trị này giúp đảm bảo rằng luôn có ít nhất 2 quy trình sẵn sàng để xử lý yêu cầu.
-pm.min_spare_servers = 2
+pm.min_spare_servers = $MIN_SPARE_SERVERS
 
 ; Số lượng quy trình rảnh rỗi tối đa mà PHP-FPM sẽ duy trì.
-; Nếu số quy trình rảnh rỗi vượt quá giá trị này, PHP-FPM sẽ giảm số lượng quy trình.
-pm.max_spare_servers = 4
+pm.max_spare_servers = $MAX_SPARE_SERVERS
 EOL
 
 	# Tạo nội dung cho cấu hình Mariadb
