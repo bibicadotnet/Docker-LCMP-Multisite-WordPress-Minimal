@@ -66,8 +66,8 @@ Chọn hành động quản lý Docker:
 5. Truy cập vào container, ưu tiên bằng bash -> sh
 6. Theo dõi cụ thể tình trạng container theo domain
 7. Khởi động lại tất cả các container
-8. Đồng bộ (pull) và khởi động lại images hiện tại cho tất cả domain
-9. Cập nhật images PHP, MariaDB, Caddy theo phiên bản LCMP cho tất cả domain
+8. Cập nhật toàn bộ các images đã cài đặt (pull mới nhất)
+9. Nâng cấp PHP, MariaDB, Caddy theo cấu hình LCMP
 0. Quay lại menu chính
 ```
 ## Backup và Restore
