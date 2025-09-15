@@ -1,6 +1,6 @@
 # Docker LCMP Multisite WordPress Minimal ![Telemetry Badge](https://monitor.bibica.net/telemetry/clnzoxcy10001vy2ohi4obbi0/clzx3jnst01txia8em59ikb95.gif?url=https://github.com/bibicadotnet/Docker-LCMP-Multisite-WordPress-Minimal)
 
-* PHP v8.4 - Caddy v2.10.0 - Mariadb v10.11.13
+* PHP v8.4.x - Caddy v2.10.2 - Mariadb v10.11.14
 
 ## Cấu trúc Thư mục
 Xuất phát ban đầu của Docker LCMP Multisite WordPress Minimal là 1 file lcmp.sh, giúp thêm và xóa các trang chạy WordPress qua Docker nhanh hơn, hoạt động xoay quanh 1 container Caddy duy nhất, vừa dùng làm Webserver cho mọi trang, vừa dùng làm Reverse Proxy cho các dịch vụ còn lại
@@ -45,8 +45,11 @@ sudo wget https://go.bibica.net/docker-lcmp-multisite-wordPress-minimal -O lcmp.
 Có thể xem video trên YouTube:
 
 [![Video Thumbnail](https://img.youtube.com/vi/Dq0iSU9kzlk/maxresdefault.jpg)](https://www.youtube.com/watch?v=Dq0iSU9kzlk)
+
 ## Sử dụng
+
 Sau khi cài đặt xong, gõ nhanh `lcmp` để truy cập trực tiếp
+
 ```
 Chọn hành động:
 1. Tạo domain mới
@@ -56,7 +59,9 @@ Chọn hành động:
 5. Cập nhật LCMP lên phiên bản mới nhất
 0. Thoát khỏi chương trình
 ```
+
 Quản lý Docker Container
+
 ```
 Chọn hành động quản lý Docker:
 1. Khởi động lại Caddy - Reverse Proxy
@@ -70,23 +75,29 @@ Chọn hành động quản lý Docker:
 9. Nâng cấp PHP, MariaDB, Caddy theo cấu hình LCMP
 0. Quay lại menu chính
 ```
+
 ## Backup và Restore
+
 backup.sh và restore.sh có thể sửa lại theo nhu cầu
 
 ## Update v1.1 
 1. Ghi chú nhỏ để biết chính xác phiên bản đang dùng
 2. Sử dụng trực tiếp image: `bibica/wordpress-wp-cli-php8.3-fpm-alpine`, đỡ mất thời gian build lại mỗi khi tạo trang WordPress mới
 3. Thêm tùy chọn 4-3. `Đặt quyền truy cập và quyền user cho WordPress bên trong domain`, chown và chmod lại thư mục WordPress, giúp sửa các lỗi nếu upload file, phân quyền lung tung
+
 ## Update v1.2
 1. Thêm tùy chọn `8. Cập nhật tất cả images container cho tất cả domain` (Lý do là sau 3-6 tháng sử dụng, có thể phiên bản images đã lỗi thời, thêm lệnh này để cập nhập tất cả images mới nhất)
 2. Sử dụng [Github Actions](https://github.com/bibicadotnet/Docker-Images-LCMP) để tự cập nhập images bibica/wordpress-wp-cli-php8.3-fpm-alpine lên phiên bản mới nhất
+
 ## Update v1.3
 1. Bỏ đi tùy chọn `9. Xóa toàn bộ các container và tất cả mọi thứ liên quan` vì khá dễ ấn nhầm, xóa luôn sạch dữ liệu cũ
 2. Bổ xung tùy chọn `5. Cập nhập LCMP lên phiên bản mới` để sau này cập nhập tiện hơn
 3. Cập nhập sử dụng mặc định PHP v8.4 - Caddy v2.9.1 - Mariadb v10.11.10 khi tạo domain mới
 4. Sử dụng image: [bibica/wordpress-wp-cli-php8.4-fpm-alpine-minial](https://github.com/bibicadotnet/wordpress-wp-cli-php8.4-fpm-alpine-minial) cho PHP (WordPress)
+
 ## Update v1.3.1
 Sửa lại đường dẫn cấu hình volumes bị nhầm (không rõ nhầm từ lúc nào) 
+
 ## Update v1.3.2
 - Docker LCMP Multisite WordPress Minimal v1.3.2
 - PHP v8.4: bibica/wordpress-wp-cli-php8.4-fpm-alpine
@@ -96,4 +107,11 @@ Sửa lại đường dẫn cấu hình volumes bị nhầm (không rõ nhầm t
 1. Bổ xung tính năng tự kiểm tra phiên bản mới nhất của LCMP mỗi khi chạy script
 2. Bổ xung menu tùy chọn `9. Cập nhật images PHP, MariaDB, Caddy theo phiên bản LCMP cho tất cả domain`
 - Tác dụng của tùy chọn này là tự sửa lại toàn bộ Reverse Proxy và các domain WordPress tạo ra bởi LCMP dùng theo các bản đã định nghĩa, đỡ phải sửa thủ công lắt nhắt các domain
+
 Ví dụ bạn có domain đang chạy PHP 8.3, hay MariaDB 10.4 từ ngày xưa, giờ vào từng domain sửa thủ công lại thì phiền, có thể dùng tùy chọn 4-> 9 để tự cập nhập lại toàn bộ
+
+## Update v1.3.4
+- Docker LCMP Multisite WordPress Minimal v1.3.4
+- PHP v8.4.x: bibica/wordpress-wp-cli-php8.4-fpm-alpine-minial
+- Caddy v2.10.2: caddy:2.10.2-alpine
+- MariaDB v10.11.14: mariadb:10.11.14
