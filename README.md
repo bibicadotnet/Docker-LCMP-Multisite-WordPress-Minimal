@@ -112,6 +112,6 @@ Ví dụ bạn có domain đang chạy PHP 8.3, hay MariaDB 10.4 từ ngày xưa
 
 ## Update v1.3.4
 - Docker LCMP Multisite WordPress Minimal v1.3.4
-- PHP v8.4.x: bibica/wordpress-wp-cli-php8.4-fpm-alpine-minial
+- PHP v8.4.x: bibica/wordpress-wp-cli-php8.4-fpm-alpine
 - Caddy v2.10.2: caddy:2.10.2-alpine
 - MariaDB v10.11.14: mariadb:10.11.14
