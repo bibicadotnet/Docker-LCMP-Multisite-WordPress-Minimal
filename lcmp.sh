@@ -1,15 +1,15 @@
 #!/bin/bash
 
 # Định nghĩa các phiên bản.
-DOCKER_SCRIPT_VERSION="v1.3.3"
-PHP_VERSION="v8.4"
-MARIADB_VERSION="v10.11.13"
-CADDY_VERSION="v2.10.0"
+DOCKER_SCRIPT_VERSION="v1.3.4"
+PHP_VERSION="v8.4.x"
+MARIADB_VERSION="v10.11.14"
+CADDY_VERSION="v2.10.2"
 
 # Các biến hình ảnh Docker.
 PHP_IMAGE="bibica/wordpress-wp-cli-php8.4-fpm-alpine-minial"
-MARIADB_IMAGE="mariadb:10.11.13"
-CADDY_IMAGE="caddy:2.10.0-alpine"
+MARIADB_IMAGE="mariadb:10.11.14"
+CADDY_IMAGE="caddy:2.10.2-alpine"
 
 # URL tới phiên bản script mới nhất trên GitHub.
 GITHUB_RAW_URL="https://raw.githubusercontent.com/bibicadotnet/Docker-LCMP-Multisite-WordPress-Minimal/main/lcmp.sh"
