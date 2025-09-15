@@ -7,7 +7,7 @@ MARIADB_VERSION="v10.11.14"
 CADDY_VERSION="v2.10.2"
 
 # Các biến hình ảnh Docker.
-PHP_IMAGE="bibica/wordpress-wp-cli-php8.4-fpm-alpine-minial"
+PHP_IMAGE="bibica/wordpress-wp-cli-php8.4-fpm-alpine"
 MARIADB_IMAGE="mariadb:10.11.14"
 CADDY_IMAGE="caddy:2.10.2-alpine"
 
